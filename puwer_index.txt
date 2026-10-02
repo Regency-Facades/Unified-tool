@@ -1,0 +1,873 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>PUWER Inspection System</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
+    <style>
+        :root {
+            --wa-header: #075E54;
+            --wa-header-light: #128C7E;
+            --wa-bg: #E5DDD5;
+            --wa-bubble-app: #FFFFFF;
+            --wa-bubble-user: #DCF8C6;
+            --wa-text-grey: #667781;
+            --wa-green-btn: #25D366;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0; padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--wa-bg);
+            background-image: url('https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png');
+            background-blend-mode: overlay;
+            height: 100vh;
+            height: -webkit-fill-available;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        header {
+            background-color: var(--wa-header);
+            color: white;
+            padding: 12px 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            z-index: 10;
+            min-height: 60px;
+            flex-shrink: 0;
+        }
+        .header-info { display: flex; flex-direction: column; }
+        .header-title { font-weight: bold; font-size: 1.1rem; }
+        .header-subtitle { font-size: 0.8rem; opacity: 0.8; }
+        .menu-btn { background: none; border: none; color: white; font-size: 1.8rem; cursor: pointer; padding: 5px 10px; }
+        
+        #chat-container {
+            flex: 1; overflow-y: auto; padding: 15px;
+            display: flex; flex-direction: column; gap: 8px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .bubble {
+            max-width: 85%; padding: 8px 12px; border-radius: 8px;
+            font-size: 0.95rem; line-height: 1.4; position: relative;
+            box-shadow: 0 1px 1px rgba(0,0,0,0.1); word-wrap: break-word;
+        }
+        .bubble.app { background-color: var(--wa-bubble-app); color: #111; align-self: flex-start; border-top-left-radius: 0; }
+        .bubble.user { background-color: var(--wa-bubble-user); color: #111; align-self: flex-end; border-top-right-radius: 0; }
+        .bubble .time { font-size: 0.65rem; color: var(--wa-text-grey); float: right; margin-left: 10px; margin-top: 5px; }
+        
+        .action-btn {
+            background-color: var(--wa-header-light); color: white; border: none;
+            padding: 8px 16px; border-radius: 15px; margin: 5px 5px 0 0;
+            font-size: 0.9rem; cursor: pointer; font-weight: bold;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+        .action-btn:hover { background-color: #0e7065; }
+
+        #input-area {
+            background-color: #F0F2F5; padding: 8px;
+            display: flex; align-items: center; gap: 8px; z-index: 10;
+            flex-shrink: 0; border-top: 1px solid #ddd;
+        }
+        #input-area.hidden { display: none; }
+        #text-input {
+            flex: 1; padding: 10px 15px; border-radius: 20px;
+            border: none; outline: none; font-size: 1rem; background: white; color: #111;
+        }
+        .send-btn {
+            background: var(--wa-header-light); color: white; border: none;
+            width: 40px; height: 40px; border-radius: 50%; font-size: 1.2rem;
+            cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8); z-index: 100;
+            justify-content: center; align-items: center; flex-direction: column;
+        }
+        .modal-content {
+            background: white; color: #111; padding: 20px; border-radius: 10px;
+            width: 90%; max-width: 400px; text-align: center;
+            max-height: 90vh; overflow-y: auto;
+        }
+        .modal-content h3 { margin-top: 0; color: var(--wa-header); }
+        .form-label {
+            display: block; text-align: left; font-size: 0.8rem; font-weight: bold;
+            color: #333; margin: 10px 0 4px 0; text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .modal input[type="text"], .modal input[type="number"] {
+            width: 100%; padding: 12px; margin: 0 0 5px 0;
+            border: 1px solid #ccc; border-radius: 5px;
+            box-sizing: border-box; font-size: 1rem;
+        }
+        .modal button {
+            background: var(--wa-green-btn); color: white; border: none;
+            padding: 12px 20px; border-radius: 5px; margin: 5px;
+            cursor: pointer; font-weight: bold; font-size: 1rem;
+        }
+        .modal button.danger { background: #FF5252; }
+        .modal button.secondary { background: var(--wa-header-light); }
+        #camera-video { width: 100%; max-height: 280px; background: black; border-radius: 8px; object-fit: cover; }
+        
+        .choice-grid {
+            display: flex; flex-direction: column; gap: 6px; margin-top: 6px; width: 100%;
+        }
+        .choice-grid button {
+            background: #f0f2f5; color: #111; border: 1px solid #ccc;
+            padding: 10px 12px; border-radius: 8px; text-align: left; font-size: 0.9rem; cursor: pointer;
+            font-weight: 500;
+        }
+        .choice-grid button:hover { background: #e4e6eb; border-color: var(--wa-header-light); }
+        
+        .explanation-box {
+            background-color: #f8f9fa; border-left: 4px solid var(--wa-header-light);
+            padding: 8px 12px; border-radius: 0 6px 6px 0; font-size: 0.85rem;
+            color: #444; text-align: left; margin: 8px 0;
+        }
+        .explanation-toggle { font-size: 0.75rem; color: var(--wa-header-light); cursor: pointer; text-decoration: underline; display: inline-block; margin-top: 4px; }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-info">
+            <span class="header-title" id="header-project">PUWER Inspection</span>
+            <span class="header-subtitle" id="header-manager">Setup Required</span>
+        </div>
+        <button class="menu-btn" id="menu-btn">&#8942;</button>
+    </header>
+
+    <div id="chat-container"></div>
+    
+    <div id="input-area" class="hidden">
+        <input type="text" id="text-input">
+        <button class="send-btn" id="send-btn">&#10148;</button>
+    </div>
+
+    <!-- Setup Modal -->
+    <div id="setup-modal" class="modal">
+        <div class="modal-content">
+            <h3>Site & Inspector Setup</h3>
+            <p style="font-size:0.85rem; color:#666; margin-bottom:10px;">Enter your company, project and inspector details.</p>
+            <label class="form-label" for="setup-company">Company Name</label>
+            <input type="text" id="setup-company">
+            <label class="form-label" for="setup-project">Project Name</label>
+            <input type="text" id="setup-project">
+            <label class="form-label" for="setup-number">Project Number</label>
+            <input type="text" id="setup-number">
+            <label class="form-label" for="setup-name">Inspector Name</label>
+            <input type="text" id="setup-name">
+            <label class="form-label" for="setup-role">Role / Position</label>
+            <input type="text" id="setup-role">
+            <p style="font-size:0.85rem; color:#666; margin:10px 0 5px;">Company Logo (optional):</p>
+            <input type="file" id="setup-logo" accept="image/*" style="font-size: 0.85rem;">
+            <br><br>
+            <button id="setup-save">Save & Start Inspection</button>
+        </div>
+    </div>
+
+    <!-- Camera Modal -->
+    <div id="camera-modal" class="modal">
+        <div class="modal-content" style="background: #222; color: white;">
+            <h3 style="color:white;">Capture Photo Evidence</h3>
+            <p style="font-size:0.85rem; color:#ccc;">Take a clear photo of the inspected equipment.</p>
+            <video id="camera-video" autoplay playsinline></video>
+            <canvas id="camera-canvas" style="display:none;"></canvas>
+            <div style="margin-top: 15px; display: flex; gap: 10px;">
+                <button id="cam-capture" style="flex:1; background: var(--wa-green-btn);">Capture</button>
+                <button id="cam-cancel" class="danger" style="flex:1;">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Signature Modal -->
+    <div id="sig-modal" class="modal">
+        <div class="modal-content">
+            <h3>Inspector Signature</h3>
+            <div style="border: 2px solid #ccc; border-radius: 5px; margin: 10px 0; background: #f9f9f9;">
+                <canvas id="sig-canvas" width="350" height="180" style="width: 100%; height: 180px; touch-action: none;"></canvas>
+            </div>
+            <div style="display:flex; gap:10px;">
+                <button id="sig-clear" class="danger" style="flex:1;">Clear</button>
+                <button id="sig-save" style="flex:1;">Confirm & PDF</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Menu Modal -->
+    <div id="menu-modal" class="modal" style="background: rgba(0,0,0,0.5); align-items: flex-start; justify-content: flex-end; padding: 60px 20px;">
+        <div class="modal-content" style="width: 220px; padding: 10px; text-align: left;">
+            <button id="btn-backup" class="secondary" style="width: 100%; margin: 5px 0; font-size: 0.85rem;">Backup Data</button>
+            <button id="btn-restore" class="secondary" style="width: 100%; margin: 5px 0; font-size: 0.85rem;">Restore Data</button>
+            <button id="btn-reset" class="danger" style="width: 100%; margin: 5px 0; font-size: 0.85rem;">Reset Setup</button>
+            <button id="btn-close-menu" style="width: 100%; margin: 5px 0; background: #999; font-size: 0.85rem;">Close</button>
+            <input type="file" id="restore-input" accept=".json" style="display:none;">
+        </div>
+    </div>
+
+    <script>
+        const SESSION_REF = "PUWER-" + new Date().toISOString().slice(0, 10).replace(/-/g, "") + "-" + Date.now().toString(36).toUpperCase().slice(-4);
+        const MAX_PHOTOS = 3;
+
+        let state = {
+            setup: { company: '', project: '', number: '', name: '', role: '', logo: null },
+            inspectionData: [],
+            currentItemIndex: 0,
+            currentQuestionIndex: 0,
+            currentAnswers: {},
+            currentPhotos: {},
+            step: 'INIT',
+            stream: null
+        };
+
+        const questions = [
+            { 
+                id: 1, 
+                title: "Question 1 – Equipment Identification",
+                question: "What is the name of the tool, its maker, its reference registration number, and who is its owner?",
+                explanation: "Pinpoint exactly what equipment you are looking at. Look for brand or manufacturer name, serial or asset number on the label plate, and inventory ownership markings."
+            },
+            { 
+                id: 2, 
+                title: "Question 2 – Power Source",
+                question: "What is the power source of the tool: battery powered, 110V powered, 240V powered, or not a power tool?",
+                explanation: "Determine how the tool is powered to confirm electrical safety checks. Yellow plugs indicate 110V, blue indicate 240V, or choose battery / manual.",
+                type: "choice",
+                choices: ["Battery Powered", "110V Powered", "240V Powered", "Not a Power Tool"]
+            },
+            { 
+                id: 3, 
+                title: "Question 3 – Power Components & Safety",
+                question: "Are the battery, cable, plug, switch, and emergency stop system all intact, and is the emergency stop functioning properly?",
+                explanation: "Inspect battery for leaks, cable for cuts, plug pins for burns, and verify switch and emergency stop functionality.",
+                type: "choice",
+                choices: ["Yes – All Intact & Functioning", "No – Issues Found"]
+            },
+            { 
+                id: 4, 
+                title: "Question 4 – Body & Structural Integrity",
+                question: "Is the tool's body free of cracks, bends, missing parts, or any components that appear altered or compromised?",
+                explanation: "Check the body carefully for visible cracks, bends, and confirm attachments are secure and unmodified.",
+                type: "choice",
+                choices: ["Yes – Body is Intact", "No – Damage/Alterations Found"]
+            },
+            { 
+                id: 5, 
+                title: "Question 5 – Calibration & Functionality",
+                question: "Does the tool require calibration, and if so, what is its status? Is the tool appropriate for safely undertaking the job, and has its functionality been tested?",
+                explanation: "Check calibration status for testing/measuring devices and confirm operational safety."
+            }
+        ];
+
+        const chatContainer = document.getElementById('chat-container');
+        const textInput = document.getElementById('text-input');
+        const sendBtn = document.getElementById('send-btn');
+        const inputArea = document.getElementById('input-area');
+
+        function getTime() {
+            var now = new Date();
+            return now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        }
+
+        function addAppBubble(text) {
+            var div = document.createElement('div');
+            div.className = 'bubble app';
+            div.appendChild(document.createTextNode(text));
+            var ts = document.createElement('span'); ts.className = 'time'; ts.innerText = getTime();
+            div.appendChild(ts);
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addUserBubble(text) {
+            var div = document.createElement('div');
+            div.className = 'bubble user';
+            div.appendChild(document.createTextNode(text));
+            var ts = document.createElement('span'); ts.className = 'time'; ts.innerText = getTime();
+            div.appendChild(ts);
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addHTMLBubble(html) {
+            var div = document.createElement('div');
+            div.className = 'bubble app';
+            div.innerHTML = html + '<span class="time">' + getTime() + '</span>';
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function addActionButtons(btn1Text, btn2Text, action1, action2) {
+            var div = document.createElement('div');
+            div.className = 'bubble app';
+            div.style.background = 'transparent'; div.style.boxShadow = 'none'; div.style.padding = '0';
+            div.style.display = 'flex'; div.style.gap = '8px'; div.style.flexWrap = 'wrap';
+            var b1 = document.createElement('button'); b1.className = 'action-btn'; b1.innerText = btn1Text;
+            b1.onclick = function() { action1(); };
+            var b2 = document.createElement('button'); b2.className = 'action-btn'; b2.innerText = btn2Text;
+            b2.onclick = function() { action2(); };
+            div.appendChild(b1); div.appendChild(b2);
+            chatContainer.appendChild(div);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+
+        function setInputVisible(visible) {
+            if (visible) {
+                inputArea.classList.remove('hidden');
+                textInput.focus();
+            } else {
+                inputArea.classList.add('hidden');
+                textInput.value = '';
+            }
+        }
+
+        window.onload = function() {
+            loadSetup();
+            if (state.setup.project) {
+                updateHeader();
+                startBriefing();
+            } else {
+                document.getElementById('setup-modal').style.display = 'flex';
+            }
+        };
+
+        function loadSetup() {
+            try { const saved = localStorage.getItem('puwer_setup'); if (saved) state.setup = JSON.parse(saved); } catch (e) {}
+        }
+        function saveSetup() {
+            try { localStorage.setItem('puwer_setup', JSON.stringify(state.setup)); } catch (e) {}
+            updateHeader();
+        }
+        function updateHeader() {
+            document.getElementById('header-project').innerText = state.setup.project || 'PUWER Inspection';
+            document.getElementById('header-manager').innerText = state.setup.name ? state.setup.name + ' (' + state.setup.role + ')' : 'Setup Required';
+        }
+
+        function startBriefing() {
+            state.step = 'BRIEFING';
+            const briefingText = "Welcome to the PUWER safety inspection module. It is your legal responsibility to ensure all work equipment operated on site is safe.";
+            addAppBubble("📋 PUWER Audit Briefing\n\n" + briefingText);
+            setTimeout(startQuestionFlow, 500);
+        }
+
+        function startQuestionFlow() {
+            state.currentQuestionIndex = 0;
+            state.currentAnswers = {};
+            state.currentPhotos = {};
+            askCurrentQuestion();
+        }
+
+        function askCurrentQuestion() {
+            const q = questions[state.currentQuestionIndex];
+            state.step = 'QUESTION_' + q.id;
+            
+            let html = '<div style="font-weight:bold; color:var(--wa-header-light); margin-bottom:4px;">Item ' + (state.currentItemIndex + 1) + ' • ' + q.title + '</div>';
+            html += '<div style="margin-bottom:6px;">' + q.question + '</div>';
+            html += '<div><span class="explanation-toggle" onclick="toggleExp(' + q.id + ')">ℹ️ Show Explanation</span>';
+            html += '<div id="exp-' + q.id + '" class="explanation-box" style="display:none;">' + q.explanation + '</div></div>';
+
+            if (q.type === 'choice') {
+                html += '<div class="choice-grid">';
+                q.choices.forEach(c => {
+                    html += '<button onclick="handleChoiceAnswer(\'' + c.replace(/'/g, "\\'") + '\')">' + c + '</button>';
+                });
+                html += '</div>';
+                setInputVisible(false);
+            } else {
+                html += '<div style="margin-top:6px; font-size:0.8rem; color:#667781;">Type your answer below and press send or enter.</div>';
+                setInputVisible(true);
+            }
+
+            addHTMLBubble(html);
+        }
+
+        window.toggleExp = function(id) {
+            const el = document.getElementById('exp-' + id);
+            if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none';
+        };
+
+        function handleChoiceAnswer(choice) {
+            addUserBubble(choice);
+            const q = questions[state.currentQuestionIndex];
+            state.currentAnswers['q' + q.id] = choice;
+            promptForPhotoEvidence();
+        }
+
+        function handleTextAnswer(text) {
+            addUserBubble(text);
+            const q = questions[state.currentQuestionIndex];
+            state.currentAnswers['q' + q.id] = text;
+            promptForPhotoEvidence();
+        }
+
+        function promptForPhotoEvidence() {
+            state.step = 'PHOTO_PROMPT';
+            const q = questions[state.currentQuestionIndex];
+            if (!state.currentPhotos['q' + q.id]) state.currentPhotos['q' + q.id] = [];
+            const count = state.currentPhotos['q' + q.id].length;
+            const msg = count === 0 ? "Would you like to take a photo of this equipment?" : `You have ${count} photo(s) for this question. Add another?`;
+            addAppBubble(' Photo Evidence (Q' + q.id + ' - ' + count + '/' + MAX_PHOTOS + '): ' + msg);
+            setInputVisible(false);
+            
+            addActionButtons(count === 0 ? ' Take Photo' : '📸 Add Another', 'Skip / Done', 
+                function() { 
+                    if (state.currentPhotos['q' + q.id].length < MAX_PHOTOS) {
+                        openCamera();
+                    } else {
+                        alert('Maximum ' + MAX_PHOTOS + ' photos reached for this question.');
+                        proceedNextQuestion();
+                    }
+                }, 
+                function() { proceedNextQuestion(); }
+            );
+        }
+
+        function proceedNextQuestion() {
+            state.currentQuestionIndex++;
+            if (state.currentQuestionIndex < questions.length) {
+                askCurrentQuestion();
+            } else {
+                saveInspectedItem();
+            }
+        }
+
+        function saveInspectedItem() {
+            for (let i = 1; i <= questions.length; i++) {
+                if (!state.currentAnswers['q' + i]) state.currentAnswers['q' + i] = 'Not answered';
+            }
+            state.inspectionData.push({
+                itemNumber: state.currentItemIndex + 1,
+                ...state.currentAnswers,
+                photos: { ...state.currentPhotos }
+            });
+            
+            state.step = 'ITEM_FINISHED';
+            addAppBubble('✅ Item ' + (state.currentItemIndex + 1) + ' successfully recorded! Would you like to inspect another item or generate the final report?');
+            setInputVisible(false);
+            addActionButtons('Inspect New Item', 'Generate Report',
+                function() {
+                    state.currentItemIndex++;
+                    state.currentAnswers = {};
+                    state.currentPhotos = {};
+                    state.currentQuestionIndex = 0; // FIX: Reset question index
+                    startQuestionFlow();
+                },
+                function() {
+                    openSignature();
+                }
+            );
+        }
+
+        var camModal = document.getElementById('camera-modal');
+        var video = document.getElementById('camera-video');
+        var canvas = document.getElementById('camera-canvas');
+
+        function openCamera() {
+            camModal.style.display = 'flex';
+            try {
+                navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } }).then(function(stream) {
+                    state.stream = stream; video.srcObject = stream;
+                }).catch(function(e) {
+                    camModal.style.display = 'none';
+                    promptForPhotoEvidence(); // FIX: Return to prompt on error
+                });
+            } catch (e) { camModal.style.display = 'none'; promptForPhotoEvidence(); }
+        }
+
+        document.getElementById('cam-capture').onclick = function() {
+            canvas.width = video.videoWidth || 640; canvas.height = video.videoHeight || 480;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            const q = questions[state.currentQuestionIndex];
+            if (!state.currentPhotos['q' + q.id]) state.currentPhotos['q' + q.id] = [];
+            state.currentPhotos['q' + q.id].push(canvas.toDataURL('image/jpeg'));
+            stopCamera();
+            promptForPhotoEvidence(); // FIX: Return to prompt to ask for more or skip
+        };
+        
+        document.getElementById('cam-cancel').onclick = function() { 
+            stopCamera(); 
+            promptForPhotoEvidence(); // FIX: Return to prompt instead of skipping question
+        };
+
+        function stopCamera() {
+            if (state.stream) { state.stream.getTracks().forEach(function(t){ t.stop(); }); state.stream = null; }
+            camModal.style.display = 'none';
+        }
+
+        sendBtn.addEventListener('click', function() {
+            var val = textInput.value.trim();
+            if (!val) return;
+            textInput.value = '';
+            if (state.step.startsWith('QUESTION_')) {
+                const q = questions[state.currentQuestionIndex];
+                if (q.type !== 'choice') handleTextAnswer(val);
+            }
+        });
+        
+        textInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && textInput.value.trim()) {
+                sendBtn.click();
+            }
+        });
+
+        var sigModal = document.getElementById('sig-modal');
+        var sigCanvas = document.getElementById('sig-canvas');
+        var sigPad = null;
+
+        function openSignature() {
+            sigModal.style.display = 'flex';
+            if (!sigPad) sigPad = new SignaturePad(sigCanvas, { backgroundColor: 'rgb(249,249,249)' });
+            else sigPad.clear();
+        }
+        document.getElementById('sig-clear').onclick = function() { sigPad.clear(); };
+        document.getElementById('sig-save').onclick = function() {
+            if (sigPad.isEmpty()) { alert('Please provide a signature first.'); return; }
+            generatePDF(sigPad.toDataURL());
+            sigModal.style.display = 'none';
+        };
+
+        function generatePDF(sigData) {
+            var jsPDF = window.jspdf.jsPDF;
+            var doc = new jsPDF('landscape', 'mm', 'a4');
+            var PW = doc.internal.pageSize.getWidth();
+            var PH = doc.internal.pageSize.getHeight();
+            var M = 15, UW = PW - 2 * M;
+            var LIMIT = PH - 16;
+            let y = 0;
+
+            function drawRunningHeader() {
+                doc.setFillColor(7, 94, 84);
+                doc.rect(0, 0, PW, 22, 'F');
+                let logoOffset = 0;
+                if (state.setup.logo) {
+                    try {
+                        var logoFmt = (state.setup.logo.indexOf('data:image/png') === 0) ? 'PNG' : 'JPEG';
+                        var imgProps = doc.getImageProperties(state.setup.logo);
+                        var ratio = imgProps.width / imgProps.height;
+                        var finalH = 14; var finalW = finalH * ratio;
+                        doc.addImage(state.setup.logo, logoFmt, M, (22 - finalH) / 2, finalW, finalH);
+                        logoOffset = finalW + 10;
+                    } catch (e) {}
+                }
+                doc.setTextColor(255, 255, 255);
+                doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+                doc.text('PUWER INSPECTION REPORT', M + logoOffset, 9);
+                doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+                doc.text((state.setup.company || 'N/A') + ' | PROJECT: ' + (state.setup.project || 'N/A') + ' | No: ' + (state.setup.number || 'N/A'), M + logoOffset, 16);
+                doc.text(state.setup.name + ' (' + state.setup.role + ')', PW - M, 9, { align: 'right' });
+                doc.text(new Date().toLocaleDateString('en-GB') + ' | Ref: ' + SESSION_REF, PW - M, 16, { align: 'right' });
+            }
+
+            // FIX: Simplified Stamp
+            function drawStamp(text, cx, cy, r, g, b) {
+                doc.setDrawColor(r, g, b);
+                doc.setLineWidth(1.5);
+                doc.roundedRect(cx - 25, cy - 10, 50, 20, 3, 3, 'S');
+                doc.setTextColor(r, g, b);
+                doc.setFont("helvetica", "bold");
+                doc.setFontSize(12);
+                doc.text(text, cx, cy + 4, { align: "center" });
+                doc.setTextColor(0, 0, 0);
+            }
+
+            // Cover / First Page Header Block
+            doc.setFillColor(7, 94, 84);
+            doc.rect(0, 0, PW, 35, 'F');
+            let logoOffset = 0;
+            if (state.setup.logo) {
+                try {
+                    var logoFmt = (state.setup.logo.indexOf('data:image/png') === 0) ? 'PNG' : 'JPEG';
+                    var imgProps = doc.getImageProperties(state.setup.logo);
+                    var ratio = imgProps.width / imgProps.height;
+                    var finalH = 22; var finalW = finalH * ratio;
+                    doc.addImage(state.setup.logo, logoFmt, M, (35 - finalH) / 2, finalW, finalH);
+                    logoOffset = finalW + 10;
+                } catch (e) {}
+            }
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(18); doc.setFont('helvetica', 'bold');
+            doc.text('PUWER INSPECTION REPORT', M + logoOffset, 14);
+            doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+            doc.text((state.setup.company || 'N/A') + ' | PROJECT: ' + (state.setup.project || 'N/A') + ' | No: ' + (state.setup.number || 'N/A'), M + logoOffset, 22);
+            doc.text(state.setup.name + ' (' + state.setup.role + ')', PW - M, 14, { align: 'right' });
+            doc.text(new Date().toLocaleDateString('en-GB') + ' | Ref: ' + SESSION_REF, PW - M, 22, { align: 'right' });
+
+            y = 45;
+            doc.setTextColor(0, 0, 0);
+            doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+            doc.text('Inspector Details', M, y); y += 8;
+            doc.setDrawColor(200, 200, 200); doc.line(M, y, PW - M, y); y += 8;
+
+            doc.setFontSize(10); doc.setFont('helvetica', 'normal');
+            doc.text('Inspector Name:', M, y); doc.setFont('helvetica', 'bold'); doc.text(state.setup.name || 'N/A', M + 40, y);
+            doc.setFont('helvetica', 'normal'); doc.text('Company:', M + 110, y); doc.setFont('helvetica', 'bold'); doc.text(state.setup.company || 'N/A', M + 135, y);
+            y += 7;
+            doc.setFont('helvetica', 'normal'); doc.text('Project Name:', M, y); doc.setFont('helvetica', 'bold'); doc.text(state.setup.project || 'N/A', M + 40, y);
+            doc.setFont('helvetica', 'normal'); doc.text('Date:', M + 110, y); doc.setFont('helvetica', 'bold'); doc.text(new Date().toLocaleDateString('en-GB'), M + 135, y);
+            y += 12;
+
+            doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+            doc.text('Inspection Summary Table', M, y); y += 8;
+
+            var COLW = [95, 112, 60];
+            var X2 = M + COLW[0], X3 = X2 + COLW[1];
+
+            function headerRow() {
+                doc.setFillColor(240, 240, 240); doc.rect(M, y, UW, 8, 'F');
+                doc.setDrawColor(150, 150, 150); doc.rect(M, y, COLW[0], 8); doc.rect(X2, y, COLW[1], 8); doc.rect(X3, y, COLW[2], 8);
+                doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0);
+                doc.text('Question / Check', M + 2, y + 5.5);
+                doc.text('Findings / Answer', X2 + 2, y + 5.5);
+                doc.text('Photo Evidence', X3 + 2, y + 5.5);
+                y += 8;
+            }
+
+            function isItemSafe(item) {
+                let ans3 = (item.q3 || '').toLowerCase();
+                let ans4 = (item.q4 || '').toLowerCase();
+                if (ans3.includes('no') || ans4.includes('no')) return false;
+                return true;
+            }
+
+            state.inspectionData.forEach(item => {
+                if (y > LIMIT - 30) { 
+                    doc.addPage(); 
+                    drawRunningHeader();
+                    y = 30; 
+                }
+                let safe = isItemSafe(item);
+                doc.setFillColor(7, 94, 84); doc.rect(M, y, UW, 9, 'F');
+                doc.setTextColor(255, 255, 255); doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+                doc.text('EQUIPMENT ITEM #' + item.itemNumber, M + 4, y + 6);
+                y += 9;
+
+                headerRow();
+                let startY = y;
+
+                questions.forEach(q => {
+                    let ans = item['q' + q.id] || 'N/A';
+                    let photos = (item.photos && item.photos['q' + q.id]) || [];
+                    
+                    doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+                    let qLines = doc.splitTextToSize(q.title + '\n' + q.question, COLW[0] - 4);
+                    let aLines = doc.splitTextToSize(ans, COLW[1] - 4);
+                    let photoH = photos.length > 0 ? 32 : 10;
+                    let h = Math.max(qLines.length * 4 + 4, aLines.length * 4 + 4, photoH + 4, 14);
+
+                    if (y + h > LIMIT) { 
+                        doc.addPage(); 
+                        drawRunningHeader();
+                        y = 30; 
+                        headerRow(); 
+                    }
+                    
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(M, y, COLW[0], h); doc.rect(X2, y, COLW[1], h); doc.rect(X3, y, COLW[2], h);
+                    
+                    doc.setTextColor(0, 0, 0);
+                    doc.text(qLines, M + 2, y + 4.5);
+                    doc.text(aLines, X2 + 2, y + 4.5);
+                    
+                    if (photos.length > 0) {
+                        try {
+                            doc.addImage(photos[0], 'JPEG', X3 + 2, y + 1, 35, h - 2);
+                        } catch(e){}
+                    } else {
+                        doc.setFont('helvetica', 'italic'); doc.setTextColor(150, 150, 150);
+                        doc.text('No photo', X3 + 2, y + 6);
+                        doc.setTextColor(0, 0, 0); doc.setFont('helvetica', 'normal');
+                    }
+                    y += h;
+                });
+                
+                drawStamp(safe ? 'SAFE' : 'NOT SAFE', M + UW * 0.62, (startY + y) / 2, safe ? 22 : 220, safe ? 163 : 38, safe ? 74 : 38);
+                y += 6;
+            });
+
+            // Extra Photos Appendix
+            let hasExtraPhotos = state.inspectionData.some(item => item.photos && Object.values(item.photos).some(arr => arr.length > 1));
+            if (hasExtraPhotos) {
+                doc.addPage(); 
+                drawRunningHeader();
+                y = 30;
+                doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+                doc.text('Additional Equipment Photo Appendix', M, y); y += 8;
+                state.inspectionData.forEach(item => {
+                    if (item.photos) {
+                        Object.keys(item.photos).forEach(key => {
+                            let arr = item.photos[key];
+                            if (arr && arr.length > 1) {
+                                let qNum = key.replace('q', '');
+                                doc.setFont('helvetica', 'bold'); doc.setFontSize(10);
+                                doc.text('Item #' + item.itemNumber + ' (Question ' + qNum + ') Extra Photos:', M, y + 4); y += 6;
+                                let px = M;
+                                arr.slice(1).forEach(ph => {
+                                    if (y + 40 > LIMIT) { doc.addPage(); drawRunningHeader(); y = 30; }
+                                    try { doc.addImage(ph, 'JPEG', px, y, 50, 38); } catch(e){}
+                                    px += 55;
+                                    if (px > PW - M - 50) { px = M; y += 42; }
+                                });
+                                y += 45;
+                            }
+                        });
+                    }
+                });
+            }
+
+            // Final Summary Page
+            doc.addPage();
+            drawRunningHeader();
+            y = 30;
+            doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+            doc.text('Inspection Executive Summary & Failed Items', M, y); y += 10;
+
+            let totalItems = state.inspectionData.length;
+            let safeCount = state.inspectionData.filter(i => isItemSafe(i)).length;
+            let unsafeCount = totalItems - safeCount;
+
+            let chartX = M, chartY = y, chartW = 120, chartH = 65;
+            doc.setDrawColor(200, 200, 200); doc.setFillColor(248, 249, 250);
+            doc.roundedRect(chartX, chartY, chartW, chartH, 3, 3, 'FD');
+            doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(7, 94, 84);
+            doc.text('Overall Inspection Breakdown', chartX + 10, chartY + 10);
+
+            doc.setFontSize(9); doc.setFont('helvetica', 'normal'); doc.setTextColor(0, 0, 0);
+            doc.text('Total Equipment Inspected: ' + totalItems, chartX + 10, chartY + 22);
+            doc.text('Safe / Passed Items: ' + safeCount, chartX + 10, chartY + 30);
+            doc.text('Not Safe / Failed Items: ' + unsafeCount, chartX + 10, chartY + 38);
+
+            let barMaxWidth = 100;
+            let safeBarW = totalItems > 0 ? (safeCount / totalItems) * barMaxWidth : 0;
+            let unsafeBarW = totalItems > 0 ? (unsafeCount / totalItems) * barMaxWidth : 0;
+            
+            doc.setFontSize(8);
+            doc.text('Safe', chartX + 10, chartY + 48);
+            doc.setFillColor(37, 211, 102);
+            doc.rect(chartX + 35, chartY + 44, safeBarW || 2, 5, 'F');
+
+            doc.text('Unsafe', chartX + 10, chartY + 57);
+            doc.setFillColor(255, 82, 82);
+            doc.rect(chartX + 35, chartY + 53, unsafeBarW || 2, 5, 'F');
+
+            let tableX = M + 130, tableW = UW - 130;
+            doc.setFontSize(11); doc.setFont('helvetica', 'bold'); doc.setTextColor(255, 82, 82);
+            doc.text('Failed / Not Safe Findings', tableX, chartY + 10);
+
+            let failedItemsList = state.inspectionData.filter(i => !isItemSafe(i));
+            let ty = chartY + 16;
+            
+            if (failedItemsList.length === 0) {
+                doc.setFontSize(9); doc.setFont('helvetica', 'italic'); doc.setTextColor(100, 100, 100);
+                doc.text('No failed or unsafe equipment recorded.', tableX, ty + 10);
+            } else {
+                doc.setFillColor(240, 240, 240); doc.rect(tableX, ty, tableW, 6, 'F');
+                doc.setFontSize(8); doc.setFont('helvetica', 'bold'); doc.setTextColor(0, 0, 0);
+                doc.text('Item', tableX + 2, ty + 4.5);
+                doc.text('Failed Question & Photo', tableX + 20, ty + 4.5);
+                ty += 6;
+
+                failedItemsList.forEach(item => {
+                    let failQ = null;
+                    if ((item.q3 || '').toLowerCase().includes('no')) failQ = questions[2];
+                    else if ((item.q4 || '').toLowerCase().includes('no')) failQ = questions[3];
+                    else failQ = questions[2];
+
+                    let qText = 'Item #' + item.itemNumber + ': ' + failQ.title;
+                    let photoArr = (item.photos && item.photos['q' + failQ.id]) || [];
+
+                    if (ty + 30 > LIMIT) return;
+
+                    doc.setDrawColor(200, 200, 200);
+                    doc.rect(tableX, ty, tableW, 28);
+                    doc.setFontSize(8); doc.setFont('helvetica', 'normal');
+                    let splitQ = doc.splitTextToSize(qText, tableW - 35);
+                    doc.text(splitQ, tableX + 2, ty + 6);
+
+                    if (photoArr.length > 0) {
+                        try {
+                            doc.addImage(photoArr[0], 'JPEG', tableX + tableW - 32, ty + 2, 30, 24);
+                        } catch(e){}
+                    } else {
+                        doc.setFontSize(7); doc.setTextColor(150, 150, 150);
+                        doc.text('No photo', tableX + tableW - 25, ty + 15);
+                        doc.setTextColor(0, 0, 0);
+                    }
+                    ty += 30;
+                });
+            }
+
+            y = chartY + chartH + 15;
+            if (y > LIMIT - 40) { doc.addPage(); drawRunningHeader(); y = 30; }
+            
+            doc.setDrawColor(0,0,0); doc.line(M, y, M + 70, y);
+            doc.setFontSize(9); doc.setFont('helvetica', 'bold');
+            doc.text('Inspector Signature', M, y + 5);
+            if (sigData) { try { doc.addImage(sigData, 'PNG', M, y + 8, 50, 25); } catch(e){} }
+            y += 38;
+            doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
+            doc.text(state.setup.name + ' - ' + state.setup.role, M, y);
+            doc.text('Signed: ' + new Date().toLocaleString('en-GB'), M + 80, y);
+
+            var totalPages = doc.internal.getNumberOfPages();
+            for (var i = 1; i <= totalPages; i++) {
+                doc.setPage(i);
+                doc.setFontSize(7); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
+                doc.text('PUWER Inspection - ' + state.setup.company + ' - ' + state.setup.project + ' - Ref: ' + SESSION_REF, PW / 2, PH - 8, { align: 'center' });
+                doc.text('Page ' + i + ' of ' + totalPages, PW - M, PH - 8, { align: 'right' });
+            }
+
+            var fileName = 'PUWER_' + (state.setup.project || 'Report').replace(/\s/g, '_') + '.pdf';
+            doc.save(fileName);
+            addAppBubble('📄 Report generated and downloaded successfully!');
+        }
+
+        document.getElementById('menu-btn').onclick = function() { document.getElementById('menu-modal').style.display = 'flex'; };
+        document.getElementById('btn-close-menu').onclick = function() { document.getElementById('menu-modal').style.display = 'none'; };
+        document.getElementById('btn-backup').onclick = function() {
+            var data = { setup: state.setup, data: state.inspectionData, timestamp: new Date().toISOString() };
+            var blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            var url = URL.createObjectURL(blob);
+            var a = document.createElement('a'); a.href = url; a.download = 'PUWER_Backup.json'; a.click();
+            URL.revokeObjectURL(url);
+            document.getElementById('menu-modal').style.display = 'none';
+        };
+        document.getElementById('btn-restore').onclick = function() { document.getElementById('restore-input').click(); };
+        document.getElementById('restore-input').onchange = function(e) {
+            var file = e.target.files[0]; if (!file) return;
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                try {
+                    var data = JSON.parse(ev.target.result);
+                    if (data.setup) { 
+                        state.setup = data.setup; 
+                        if (data.data) state.inspectionData = data.data; // FIX: Restore inspection data
+                        saveSetup(); 
+                        alert('Restored successfully!'); 
+                        location.reload(); 
+                    }
+                } catch (err) { alert('Error: ' + err.message); }
+            };
+            reader.readAsText(file);
+        };
+        document.getElementById('btn-reset').onclick = function() { if (confirm('Reset all setup data?')) { localStorage.removeItem('puwer_setup'); location.reload(); } };
+
+        document.getElementById('setup-save').onclick = function() {
+            state.setup.company = document.getElementById('setup-company').value.trim();
+            state.setup.project = document.getElementById('setup-project').value.trim();
+            state.setup.number = document.getElementById('setup-number').value.trim();
+            state.setup.name = document.getElementById('setup-name').value.trim();
+            state.setup.role = document.getElementById('setup-role').value.trim();
+            if (!state.setup.project || !state.setup.name) { alert('Please fill in required fields.'); return; }
+            var logoFile = document.getElementById('setup-logo').files[0];
+            if (logoFile) {
+                var reader = new FileReader();
+                reader.onload = function(e) { state.setup.logo = e.target.result; saveSetup(); document.getElementById('setup-modal').style.display = 'none'; startBriefing(); };
+                reader.readAsDataURL(logoFile);
+            } else { saveSetup(); document.getElementById('setup-modal').style.display = 'none'; startBriefing(); }
+        };
+    </script>
+</body>
+</html>
