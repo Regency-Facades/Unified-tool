@@ -60,6 +60,7 @@ body { background-color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-se
 <h2 id="supervisorLinkTitle" class="text-lg font-bold text-slate-800">Supervisor Link Generator</h2>
 </div>
 <p class="text-sm text-slate-500 mb-5">Create a site-specific link for a supervisor.</p>
+<p class="text-xs text-amber-800 mb-4">Revocable links require Supabase sync and the supervisor_links table. Without cloud sync, links work only in this browser.</p>
 <form onsubmit="generateSupervisorLink(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
 <div>
 <label for="supervisorName" class="block text-sm font-semibold text-slate-700 mb-1.5">Supervisor Name</label>
@@ -82,6 +83,10 @@ body { background-color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-se
 <button type="button" onclick="copySupervisorLink()" class="shrink-0 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold">Copy</button>
 </div>
 <p id="supervisorCopyStatus" class="min-h-5 mt-1 text-xs text-emerald-700" aria-live="polite"></p>
+</div>
+<div class="mt-6 border-t border-slate-200 pt-4">
+<h3 class="text-sm font-bold text-slate-800 mb-3">Generated Supervisor Links</h3>
+<div class="overflow-x-auto"><table class="w-full text-left text-sm"><thead><tr class="border-b text-xs uppercase text-slate-500"><th class="p-2">Supervisor</th><th class="p-2">Site / Project</th><th class="p-2">Link</th><th class="p-2">Created</th><th class="p-2 text-right">Action</th></tr></thead><tbody id="supervisorLinksBody" class="divide-y text-xs"></tbody></table></div>
 </div>
 </section>
 
@@ -149,7 +154,7 @@ body { background-color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-se
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left text-sm border-collapse">
-<thead><tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider"><th class="p-3">Date</th><th class="p-3">Equipment / Record</th><th class="p-3">Site / Project</th><th class="p-3">Inspector</th><th class="p-3">Outcome</th></tr></thead>
+<thead><tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider"><th class="p-3">Date</th><th class="p-3">Equipment / Record</th><th class="p-3">Site / Project</th><th class="p-3">Inspector</th><th class="p-3">Outcome</th><th class="p-3 text-right">Actions</th></tr></thead>
 <tbody id="puwerRecordsBody" class="divide-y text-xs text-slate-700"></tbody>
 </table>
 </div>
@@ -162,7 +167,7 @@ body { background-color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-se
 </div>
 <div class="overflow-x-auto">
 <table class="w-full text-left text-sm border-collapse">
-<thead><tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider"><th class="p-3">Date</th><th class="p-3">Equipment / Record</th><th class="p-3">Site / Project</th><th class="p-3">Inspector</th><th class="p-3">Outcome</th></tr></thead>
+<thead><tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider"><th class="p-3">Date</th><th class="p-3">Equipment / Record</th><th class="p-3">Site / Project</th><th class="p-3">Inspector</th><th class="p-3">Outcome</th><th class="p-3 text-right">Actions</th></tr></thead>
 <tbody id="havsRecordsBody" class="divide-y text-xs text-slate-700"></tbody>
 </table>
 </div>
@@ -325,6 +330,26 @@ Review non-compliant items, attach remediation evidence regarding temporary work
 </div>
 </div>
 
+<div id="complianceEditModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-[70]">
+<div class="bg-white rounded-xl max-w-3xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between border-b pb-3"><h3 id="complianceEditTitle" class="font-bold text-slate-800 text-lg">Edit Compliance Report</h3><button type="button" onclick="closeComplianceEdit()" aria-label="Close"><i data-lucide="x" class="w-5 h-5 text-slate-400"></i></button></div>
+<form onsubmit="saveComplianceEdit(event)" class="space-y-4 text-sm">
+<input id="complianceEditType" type="hidden"><input id="complianceEditId" type="hidden">
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+<label class="font-semibold text-slate-700">Date<input id="complianceEditDate" type="text" class="mt-1 w-full border rounded-lg p-2 font-normal"></label>
+<label class="font-semibold text-slate-700">Inspector<input id="complianceEditInspector" type="text" class="mt-1 w-full border rounded-lg p-2 font-normal"></label>
+<label class="font-semibold text-slate-700">Outcome / Status<input id="complianceEditStatus" type="text" class="mt-1 w-full border rounded-lg p-2 font-normal"></label>
+<label class="font-semibold text-slate-700">Score<input id="complianceEditScore" type="text" class="mt-1 w-full border rounded-lg p-2 font-normal"></label>
+<label class="font-semibold text-slate-700 sm:col-span-2">Site / Project<input id="complianceEditLocation" type="text" class="mt-1 w-full border rounded-lg p-2 font-normal"></label>
+<label class="font-semibold text-slate-700 sm:col-span-2">Report notes<textarea id="complianceEditNotes" rows="2" class="mt-1 w-full border rounded-lg p-2 font-normal"></textarea></label>
+</div>
+<label class="block font-semibold text-slate-700">Inspection details (JSON)<textarea id="complianceEditQuestions" rows="12" spellcheck="false" class="mt-1 w-full border rounded-lg p-3 font-mono text-xs font-normal"></textarea></label>
+<p id="complianceEditError" class="text-sm text-red-700" role="alert"></p>
+<div class="flex justify-end gap-2 border-t pt-3"><button type="button" onclick="closeComplianceEdit()" class="px-4 py-2 rounded-lg bg-slate-100 text-slate-700 font-semibold">Cancel</button><button type="submit" class="px-4 py-2 rounded-lg bg-amber-900 text-white font-semibold">Save report</button></div>
+</form>
+</div>
+</div>
+
 <script>
 let SUPABASE_URL = localStorage.getItem('tw_supa_url') || "";
 let SUPABASE_ANON_KEY = localStorage.getItem('tw_supa_key') || "";
@@ -337,6 +362,7 @@ let activeComplianceType = 'tw';
 let clients = JSON.parse(localStorage.getItem('tw_clients')) || [];
 let sites = JSON.parse(localStorage.getItem('tw_sites')) || [];
 let audits = JSON.parse(localStorage.getItem('tw_audits')) || [];
+let supervisorLinks = readStoredRecords('supervisor_links');
 let branding = JSON.parse(localStorage.getItem('tw_branding')) || {
 title: "Temporary Works UK",
 subtitle: "BS 5975 & CDM 2015 Compliance System",
@@ -415,6 +441,11 @@ if(!sErr && s !== null) { sites = s; localStorage.setItem('tw_sites', JSON.strin
 
 const { data: a, error: aErr } = await supabaseClient.from('audits').select('*'); 
 if(!aErr && a !== null) cacheAuditRecords(a);
+const { data: links, error: linksErr } = await supabaseClient.from('supervisor_links').select('*').eq('active', true);
+if (!linksErr && links !== null) {
+supervisorLinks = links;
+localStorage.setItem('supervisor_links', JSON.stringify(supervisorLinks));
+}
 
 document.getElementById('dbStatusLabel').innerText = "Database Connected";
 } catch(e) {
@@ -425,6 +456,7 @@ populateDropdowns();
 renderDashboard();
 renderComplianceRecords('puwer');
 renderComplianceRecords('havs');
+renderSupervisorLinks();
 }
 
 function clearLocalCacheAndReload() {
@@ -494,6 +526,13 @@ String(record.type || record.complianceType || '').toLowerCase() === type
 );
 }
 
+function persistComplianceRecords(type, records) {
+localStorage.setItem(type + '_records', JSON.stringify(records));
+localStorage.setItem(type + '_audits', JSON.stringify(records));
+const otherRecords = readStoredRecords('compliance_records').filter(record => complianceRecordType(record) !== type);
+localStorage.setItem('compliance_records', JSON.stringify([...otherRecords, ...records]));
+}
+
 function complianceValue(record, fields, fallback) {
 for (const field of fields) {
 const value = record[field];
@@ -543,7 +582,7 @@ tbody.replaceChildren();
 if (records.length === 0) {
 const row = document.createElement('tr');
 const cell = document.createElement('td');
-cell.colSpan = 5;
+cell.colSpan = 6;
 cell.className = 'p-6 text-center text-slate-400';
 cell.textContent = 'No ' + (type === 'puwer' ? 'PUWER' : 'HAVS') + ' records found.';
 row.appendChild(cell);
@@ -572,19 +611,315 @@ cell.className = 'p-3';
 cell.textContent = value;
 row.appendChild(cell);
 });
+const actions = document.createElement('td');
+actions.className = 'p-3 text-right whitespace-nowrap';
+[
+['Edit', 'edit-3', () => openComplianceEdit(type, record.id), 'bg-slate-800 hover:bg-slate-700 text-white'],
+['Email', 'mail', () => emailComplianceReport(type, record.id), 'bg-amber-700 hover:bg-amber-600 text-white'],
+['PDF', 'download', () => downloadComplianceReport(type, record.id), 'bg-white border border-slate-300 hover:bg-slate-50 text-slate-700'],
+['Delete', 'trash-2', () => deleteComplianceRecord(type, record.id), 'bg-red-50 hover:bg-red-100 text-red-700']
+].forEach(([label, icon, action, style]) => {
+const button = document.createElement('button');
+button.type = 'button';
+button.className = 'inline-flex items-center gap-1 px-2 py-1.5 rounded-lg font-bold text-xs mr-1 ' + style;
+button.title = label + ' report';
+button.setAttribute('aria-label', label + ' report');
+button.innerHTML = '<i data-lucide="' + icon + '" class="w-3.5 h-3.5"></i><span>' + label + '</span>';
+button.addEventListener('click', action);
+actions.appendChild(button);
+});
+row.appendChild(actions);
 tbody.appendChild(row);
 });
+lucide.createIcons();
 }
 
-function generateSupervisorLink(event) {
+function findComplianceRecord(type, id) {
+return getComplianceRecords(type).find(record => String(record.id) === String(id));
+}
+
+function openComplianceEdit(type, id) {
+const record = findComplianceRecord(type, id);
+if (!record) return;
+document.getElementById('complianceEditType').value = type;
+document.getElementById('complianceEditId').value = id;
+document.getElementById('complianceEditTitle').textContent = 'Edit ' + type.toUpperCase() + ' Report';
+document.getElementById('complianceEditDate').value = complianceValue(record, ['date', 'inspectionDate'], '');
+document.getElementById('complianceEditInspector').value = complianceValue(record, ['inspectorName', 'inspector', 'assessor'], '');
+document.getElementById('complianceEditStatus').value = complianceValue(record, ['status', 'result', 'condition', 'riskLevel', 'rating', 'outcome'], '');
+document.getElementById('complianceEditScore').value = complianceValue(record, ['score', 'overallScore'], '');
+document.getElementById('complianceEditLocation').value = complianceLocation(record);
+document.getElementById('complianceEditNotes').value = record.inspectorNotes || '';
+document.getElementById('complianceEditQuestions').value = JSON.stringify(record.questions || [], null, 2);
+document.getElementById('complianceEditError').textContent = '';
+const modal = document.getElementById('complianceEditModal');
+modal.classList.remove('hidden');
+modal.classList.add('flex');
+}
+
+function closeComplianceEdit() {
+const modal = document.getElementById('complianceEditModal');
+modal.classList.add('hidden');
+modal.classList.remove('flex');
+}
+
+async function saveComplianceEdit(event) {
+event.preventDefault();
+const type = document.getElementById('complianceEditType').value;
+const id = document.getElementById('complianceEditId').value;
+const record = findComplianceRecord(type, id);
+if (!record) return;
+let questions;
+try {
+questions = JSON.parse(document.getElementById('complianceEditQuestions').value || '[]');
+if (!Array.isArray(questions)) throw new Error('Inspection details must be a JSON array.');
+} catch (error) {
+document.getElementById('complianceEditError').textContent = 'Inspection details are invalid JSON: ' + error.message;
+return;
+}
+const location = document.getElementById('complianceEditLocation').value.trim();
+const matchingSite = sites.find(site => String(site.name || '').toLowerCase() === location.toLowerCase());
+const matchingClient = clients.find(client => String(client.name || '').toLowerCase() === location.toLowerCase());
+if (location && !matchingSite && !matchingClient) {
+document.getElementById('complianceEditError').textContent = 'Choose the name of a registered site or project for the report location.';
+return;
+}
+const updated = {
+date: document.getElementById('complianceEditDate').value.trim(),
+inspectorName: document.getElementById('complianceEditInspector').value.trim(),
+status: document.getElementById('complianceEditStatus').value.trim(),
+score: document.getElementById('complianceEditScore').value.trim(),
+inspectorNotes: document.getElementById('complianceEditNotes').value.trim(),
+questions
+};
+if (matchingSite) {
+updated.siteId = matchingSite.id;
+updated.clientId = matchingSite.clientId;
+} else if (matchingClient) {
+updated.siteId = null;
+updated.clientId = matchingClient.id;
+}
+const databaseUpdates = { ...updated };
+if (databaseUpdates.score !== '' && Number.isFinite(Number(databaseUpdates.score))) databaseUpdates.score = Number(databaseUpdates.score);
+if (supabaseClient) {
+const { error } = await supabaseClient.from('audits').update(databaseUpdates).eq('id', id);
+if (error) {
+document.getElementById('complianceEditError').textContent = 'Could not save this report to Supabase: ' + error.message;
+return;
+}
+}
+Object.assign(record, updated);
+record.complianceType = type;
+persistComplianceRecords(type, getComplianceRecords(type).map(item => String(item.id) === String(id) ? record : item));
+closeComplianceEdit();
+renderComplianceRecords(type);
+renderDashboard();
+}
+
+function buildCompliancePdf(type, record) {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+const title = type.toUpperCase() + ' Compliance Report';
+const location = complianceLocation(record) || 'Site not recorded';
+doc.setFillColor(120, 53, 15);
+doc.rect(0, 0, 210, 27, 'F');
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(16);
+doc.text(title, 14, 17);
+doc.setTextColor(40, 40, 40);
+doc.setFontSize(10);
+doc.text('Site / Project: ' + location, 14, 38);
+doc.text('Date: ' + complianceValue(record, ['date', 'inspectionDate', 'createdAt'], 'Not recorded'), 14, 45);
+doc.text('Inspector: ' + complianceValue(record, ['inspectorName', 'inspector', 'assessor'], 'Not recorded'), 14, 52);
+doc.text('Outcome: ' + complianceValue(record, ['status', 'result', 'condition', 'riskLevel', 'rating', 'outcome'], 'Recorded'), 14, 59);
+doc.text('Score: ' + complianceValue(record, ['score', 'overallScore'], 'Not recorded'), 14, 66);
+const questions = Array.isArray(record.questions) ? record.questions : [];
+const rows = questions.map((question, index) => [
+String(question.topic || question.title || question.name || question.category || 'Item ' + (index + 1)),
+String(question.answer || question.status || question.result || ''),
+String(question.text || question.details || question.comment || question.inspectorNotes || JSON.stringify(question))
+]);
+doc.autoTable({ startY: 74, head: [['Inspection item', 'Outcome', 'Details']], body: rows.length ? rows : [['Report details', '', record.inspectorNotes || 'No inspection details recorded']], styles: { fontSize: 8, cellPadding: 2, overflow: 'linebreak' }, headStyles: { fillColor: [120, 53, 15] }, columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 30 }, 2: { cellWidth: 110 } } });
+if (record.inspectorNotes) {
+doc.addPage();
+doc.setFontSize(12);
+doc.text('Report notes', 14, 18);
+doc.setFontSize(9);
+doc.text(doc.splitTextToSize(String(record.inspectorNotes), 180), 14, 26);
+}
+return doc;
+}
+
+function complianceReportFilename(type, record) {
+const location = (complianceLocation(record) || type).replace(/[^a-z0-9_-]+/gi, '_');
+const date = String(complianceValue(record, ['date', 'inspectionDate'], 'report')).replace(/[^a-z0-9_-]+/gi, '_');
+return type.toUpperCase() + '_Report_' + location + '_' + date + '.pdf';
+}
+
+function downloadComplianceReport(type, id) {
+const record = findComplianceRecord(type, id);
+if (!record) return;
+buildCompliancePdf(type, record).save(complianceReportFilename(type, record));
+}
+
+async function emailComplianceReport(type, id) {
+const record = findComplianceRecord(type, id);
+if (!record) return;
+const doc = buildCompliancePdf(type, record);
+const pdfFile = new File([doc.output('blob')], complianceReportFilename(type, record), { type: 'application/pdf' });
+const location = complianceLocation(record) || type.toUpperCase() + ' report';
+const subject = type.toUpperCase() + ' report - ' + location;
+const body = 'Please find the ' + type.toUpperCase() + ' compliance report for ' + location + ', dated ' + complianceValue(record, ['date', 'inspectionDate'], 'not recorded') + '.';
+if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+try { await navigator.share({ title: subject, text: body, files: [pdfFile] }); return; }
+catch (error) { if (error.name === 'AbortError') return; }
+}
+doc.save(complianceReportFilename(type, record));
+const client = clients.find(item => String(item.id) === String(record.clientId)) || {};
+setTimeout(() => { window.location.href = 'mailto:' + encodeURIComponent(client.email || '') + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body); }, 400);
+}
+
+async function deleteComplianceRecord(type, id) {
+if (!confirm('Delete this ' + type.toUpperCase() + ' report permanently?')) return;
+if (supabaseClient) {
+const { error } = await supabaseClient.from('audits').delete().eq('id', id);
+if (error) {
+alert('Could not delete this report from Supabase: ' + error.message);
+return;
+}
+}
+const remaining = getComplianceRecords(type).filter(record => String(record.id) !== String(id));
+persistComplianceRecords(type, remaining);
+renderComplianceRecords(type);
+renderDashboard();
+}
+
+async function generateSupervisorLink(event) {
 event.preventDefault();
 const name = document.getElementById('supervisorName').value.trim();
 const project = document.getElementById('supervisorProject').value;
 if (!name || !project) return;
+let token;
+try {
+token = createSupervisorToken();
+} catch (error) {
+alert('This browser cannot create a secure supervisor link. Open the dashboard over HTTPS and try again.');
+return;
+}
+const linkRecord = { id: token, token, supervisor_name: name, project, created_at: new Date().toISOString(), active: true };
+if (supabaseClient) {
+const { error } = await supabaseClient.from('supervisor_links').insert([linkRecord]);
+if (error) {
+alert('Could not save the revocable link to Supabase. Check that the supervisor_links table and access policies are installed.');
+return;
+}
+} else {
+linkRecord.localOnly = true;
+}
+supervisorLinks.push(linkRecord);
+localStorage.setItem('supervisor_links', JSON.stringify(supervisorLinks));
 const baseUrl = window.location.href.split('officerdashboard.html')[0];
-document.getElementById('generatedSupervisorLink').value = baseUrl + 'supervisor.html?name=' + encodeURIComponent(name) + '&project=' + encodeURIComponent(project);
+const params = new URLSearchParams({ name, project, token });
+if (supabaseClient) {
+params.set('dbUrl', SUPABASE_URL);
+params.set('dbKey', SUPABASE_ANON_KEY);
+}
+document.getElementById('generatedSupervisorLink').value = baseUrl + 'supervisor.html?' + params.toString();
 document.getElementById('supervisorLinkOutput').classList.remove('hidden');
 document.getElementById('supervisorCopyStatus').textContent = '';
+renderSupervisorLinks();
+}
+
+function renderSupervisorLinks() {
+const tbody = document.getElementById('supervisorLinksBody');
+if (!tbody) return;
+tbody.replaceChildren();
+if (!supervisorLinks.length) {
+const row = tbody.insertRow();
+const cell = row.insertCell();
+cell.colSpan = 5;
+cell.className = 'p-4 text-center text-slate-400';
+cell.textContent = 'No supervisor links generated.';
+return;
+}
+supervisorLinks.filter(link => link.active !== false).forEach(link => {
+const row = tbody.insertRow();
+[link.supervisor_name || link.name || 'Supervisor', link.project || 'Project'].forEach(value => {
+const cell = row.insertCell();
+cell.className = 'p-2';
+cell.textContent = value;
+});
+const linkCell = row.insertCell();
+linkCell.className = 'p-2 max-w-xs truncate';
+const params = new URLSearchParams({ name: link.supervisor_name || link.name || '', project: link.project || '', token: link.token || link.id || '' });
+if (supabaseClient && !link.localOnly) {
+params.set('dbUrl', SUPABASE_URL);
+params.set('dbKey', SUPABASE_ANON_KEY);
+}
+const anchor = document.createElement('a');
+anchor.href = window.location.href.split('officerdashboard.html')[0] + 'supervisor.html?' + params.toString();
+anchor.textContent = 'Open link';
+anchor.target = '_blank';
+anchor.rel = 'noopener';
+anchor.className = 'text-blue-700 underline';
+linkCell.appendChild(anchor);
+const dateCell = row.insertCell();
+dateCell.className = 'p-2 whitespace-nowrap';
+dateCell.textContent = link.created_at ? new Date(link.created_at).toLocaleDateString() : 'Not recorded';
+const actionCell = row.insertCell();
+actionCell.className = 'p-2 text-right';
+const button = document.createElement('button');
+button.type = 'button';
+button.textContent = 'Revoke';
+button.className = 'px-3 py-1.5 rounded-lg bg-red-50 text-red-700 hover:bg-red-100 font-semibold';
+button.addEventListener('click', () => revokeSupervisorLink(link.token || link.id));
+const copyButton = document.createElement('button');
+copyButton.type = 'button';
+copyButton.textContent = 'Copy';
+copyButton.className = 'px-3 py-1.5 mr-1 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 font-semibold';
+copyButton.addEventListener('click', () => copySupervisorUrl(anchor.href, copyButton));
+actionCell.appendChild(copyButton);
+actionCell.appendChild(button);
+});
+lucide.createIcons();
+}
+
+async function revokeSupervisorLink(token) {
+if (!confirm('Revoke this supervisor link? It will no longer open the portal.')) return;
+const link = supervisorLinks.find(item => String(item.token || item.id) === String(token));
+if (supabaseClient && link && !link.localOnly) {
+const { error } = await supabaseClient.from('supervisor_links').delete().eq('token', token);
+if (error) {
+alert('Could not revoke this link in Supabase: ' + error.message);
+return;
+}
+}
+supervisorLinks = supervisorLinks.filter(item => String(item.token || item.id) !== String(token));
+localStorage.setItem('supervisor_links', JSON.stringify(supervisorLinks));
+renderSupervisorLinks();
+}
+
+function createSupervisorToken() {
+if (window.crypto && window.crypto.randomUUID) return window.crypto.randomUUID();
+if (!window.crypto || !window.crypto.getRandomValues) throw new Error('Secure random generation is unavailable.');
+const randomBytes = new Uint8Array(32);
+window.crypto.getRandomValues(randomBytes);
+return Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+}
+
+async function copySupervisorUrl(url, button) {
+try {
+await navigator.clipboard.writeText(url);
+} catch (error) {
+const input = document.createElement('textarea');
+input.value = url;
+document.body.appendChild(input);
+input.select();
+document.execCommand('copy');
+input.remove();
+}
+button.textContent = 'Copied';
+setTimeout(() => { button.textContent = 'Copy'; }, 1500);
 }
 
 async function copySupervisorLink() {

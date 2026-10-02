@@ -305,11 +305,34 @@ let sigMode = 'auditor';
 let sigDrawing = false;
 let maxUnlockedIndex = 0;
 
+async function validateSupervisorLink(params) {
+    const token = params.get('token');
+    if (!token) return true;
+    const dbUrl = params.get('dbUrl') || localStorage.getItem('tw_supa_url') || '';
+    const dbKey = params.get('dbKey') || localStorage.getItem('tw_supa_key') || '';
+    if (dbUrl && dbKey && window.supabase) {
+        try {
+            const client = window.supabase.createClient(dbUrl, dbKey);
+            const { data, error } = await client.from('supervisor_links').select('token').eq('token', token).eq('active', true).maybeSingle();
+            return !error && Boolean(data);
+        } catch (error) { return false; }
+    }
+    try {
+        const links = JSON.parse(localStorage.getItem('supervisor_links') || '[]');
+        return links.some(link => String(link.token || link.id) === token && link.active !== false);
+    } catch (error) { return false; }
+}
+
 window.onload = async function() {
     const params = new URLSearchParams(window.location.search);
+    if (!(await validateSupervisorLink(params))) {
+        alert('This supervisor link is invalid or has been revoked.');
+        window.location.replace('supervisor.html');
+        return;
+    }
     const supervisorName = (params.get('name') || '').trim();
     const projectName = (params.get('project') || '').trim();
-    document.getElementById('supervisorPortalLink').href = 'supervisor.html?name=' + encodeURIComponent(supervisorName) + '&project=' + encodeURIComponent(projectName);
+    document.getElementById('supervisorPortalLink').href = 'supervisor.html' + (window.location.search || '');
     applyBranding();
     if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
         try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){}

@@ -7,6 +7,7 @@
   <title>Supervisor Portal | Site Compliance</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
@@ -48,7 +49,8 @@
       <p class="mt-2 max-w-xl text-sm leading-6 text-slate-600">Select the compliance activity you need to complete for this project.</p>
     </div>
 
-    <nav class="space-y-3" aria-label="Inspection applications">
+    <p id="linkStatus" class="mb-4 hidden rounded-lg border border-red-200 bg-red-50 p-4 text-sm font-semibold text-red-800" role="alert"></p>
+    <nav id="inspectionLinks" class="hidden space-y-3" aria-label="Inspection applications">
       <a id="temporaryWorksLink" class="launch-link group flex min-h-[82px] items-center gap-4 rounded-xl border border-[#d8ded9] bg-white px-4 py-4 shadow-sm sm:px-5" href="tw_app.html">
         <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#e7f0eb] text-[#075E54]" aria-hidden="true"><i data-lucide="construction" class="h-6 w-6"></i></span>
         <span class="min-w-0 flex-1">
@@ -81,19 +83,68 @@
   </main>
 
   <script>
-    const params = new URLSearchParams(window.location.search);
-    const supervisorName = (params.get('name') || '').trim();
-    const projectName = (params.get('project') || '').trim();
+    async function initializeSupervisorPortal() {
+      const params = new URLSearchParams(window.location.search);
+      let supervisorName = (params.get('name') || '').trim();
+      let projectName = (params.get('project') || '').trim();
+      const token = params.get('token');
 
-    document.getElementById('welcomeHeading').textContent = `Welcome, ${supervisorName || 'Supervisor'}`;
-    document.getElementById('projectName').textContent = projectName || 'Project not specified';
+      if (!token && (supervisorName || projectName)) {
+        showLinkError('This supervisor link is missing its access token. Generate a new link from the officer dashboard.');
+        return;
+      }
 
-    const contextQuery = `?name=${encodeURIComponent(supervisorName)}&project=${encodeURIComponent(projectName)}`;
-    document.getElementById('temporaryWorksLink').href = `tw_app.html${contextQuery}`;
-    document.getElementById('puwerLink').href = `puwer_app.html${contextQuery}`;
-    document.getElementById('havsLink').href = `havs_app.html${contextQuery}`;
+      if (token) {
+        const dbUrl = params.get('dbUrl') || localStorage.getItem('tw_supa_url') || '';
+        const dbKey = params.get('dbKey') || localStorage.getItem('tw_supa_key') || '';
+        if (dbUrl && dbKey && window.supabase) {
+          try {
+            const client = window.supabase.createClient(dbUrl, dbKey);
+            const { data, error } = await client.from('supervisor_links').select('token, supervisor_name, project').eq('token', token).eq('active', true).maybeSingle();
+            if (error || !data) throw new Error('This supervisor link is invalid or has been revoked.');
+            supervisorName = data.supervisor_name;
+            projectName = data.project;
+            localStorage.setItem('tw_supa_url', dbUrl);
+            localStorage.setItem('tw_supa_key', dbKey);
+          } catch (error) {
+            showLinkError(error.message || 'This supervisor link could not be verified.');
+            return;
+          }
+        } else {
+          let links = [];
+          try { links = JSON.parse(localStorage.getItem('supervisor_links') || '[]'); } catch (error) {}
+          const link = links.find(item => String(item.token || item.id) === token && item.active !== false);
+          if (!link) {
+            showLinkError('This supervisor link is invalid or has been revoked. Connect to the same browser used to generate this offline link.');
+            return;
+          }
+          supervisorName = link.supervisor_name || link.name || supervisorName;
+          projectName = link.project || projectName;
+        }
+      }
 
-    lucide.createIcons();
+      document.getElementById('welcomeHeading').textContent = `Welcome, ${supervisorName || 'Supervisor'}`;
+      document.getElementById('projectName').textContent = projectName || 'Project not specified';
+      const context = new URLSearchParams(params);
+      context.set('name', supervisorName);
+      context.set('project', projectName);
+      const contextQuery = `?${context.toString()}`;
+      document.getElementById('temporaryWorksLink').href = `tw_app.html${contextQuery}`;
+      document.getElementById('puwerLink').href = `puwer_app.html${contextQuery}`;
+      document.getElementById('havsLink').href = `havs_app.html${contextQuery}`;
+      document.getElementById('inspectionLinks').classList.remove('hidden');
+      lucide.createIcons();
+    }
+
+    function showLinkError(message) {
+      const status = document.getElementById('linkStatus');
+      status.textContent = message;
+      status.classList.remove('hidden');
+      document.getElementById('welcomeHeading').textContent = 'Supervisor link unavailable';
+      document.getElementById('projectName').textContent = '';
+    }
+
+    initializeSupervisorPortal();
   </script>
 </body>
 </html>
