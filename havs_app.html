@@ -1000,7 +1000,10 @@
                     managerName: state.setup.name || '',
                     employer: state.currentOperative.employer || '',
                     area: state.currentOperative.area || '',
-                    tool: tool
+                    brand: tool.brand || '',
+                    model: tool.model || '',
+                    vibration: tool.vibration,
+                    requestedHours: tool.requestedHours
                 };
             });
             var audit = {
