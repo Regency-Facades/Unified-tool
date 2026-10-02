@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#075E54">
+  <title>Supervisor Portal | Site Compliance</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root { --wa-green: #075E54; --paper: #ECE5DD; }
+    body { font-family: 'DM Sans', sans-serif; background-color: var(--paper); }
+    .display-font { font-family: 'Oswald', sans-serif; }
+    .paper-texture {
+      background-image: radial-gradient(rgba(7, 94, 84, .055) .7px, transparent .7px);
+      background-size: 12px 12px;
+    }
+    .launch-link { transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease; }
+    .launch-link:hover { transform: translateY(-2px); box-shadow: 0 12px 22px rgba(34, 53, 46, .12); border-color: rgba(7, 94, 84, .35); }
+    .launch-link:focus-visible { outline: 3px solid #c9df65; outline-offset: 3px; }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: .01ms !important; } }
+  </style>
+</head>
+<body class="paper-texture min-h-screen text-slate-800 antialiased">
+  <header class="bg-[#075E54] text-white shadow-md">
+    <div class="mx-auto flex min-h-[76px] max-w-3xl items-center gap-3 px-5 py-4 sm:px-7">
+      <div class="grid h-11 w-11 shrink-0 place-items-center rounded-xl border border-white/20 bg-white/10 text-[#d8e998]" aria-hidden="true">
+        <i data-lucide="hard-hat" class="h-6 w-6"></i>
+      </div>
+      <div class="min-w-0">
+        <p class="display-font truncate text-xl font-semibold leading-tight" id="welcomeHeading">Welcome, Supervisor</p>
+        <p class="mt-1 truncate text-sm text-white/75" id="projectName">Project not specified</p>
+      </div>
+      <div class="ml-auto hidden items-center gap-2 text-xs font-medium text-white/75 sm:flex">
+        <span class="h-2 w-2 rounded-full bg-[#c9df65]"></span>
+        Site compliance
+      </div>
+    </div>
+  </header>
+
+  <main class="mx-auto w-full max-w-3xl px-4 pb-12 pt-8 sm:px-7 sm:pt-12">
+    <div class="mb-6 sm:mb-8">
+      <p class="mb-2 text-xs font-bold uppercase text-[#477267]">Supervisor workspace</p>
+      <h1 class="display-font text-3xl font-semibold leading-tight text-[#263c36] sm:text-4xl">Choose an inspection</h1>
+      <p class="mt-2 max-w-xl text-sm leading-6 text-slate-600">Select the compliance activity you need to complete for this project.</p>
+    </div>
+
+    <nav class="space-y-3" aria-label="Inspection applications">
+      <a id="temporaryWorksLink" class="launch-link group flex min-h-[82px] items-center gap-4 rounded-xl border border-[#d8ded9] bg-white px-4 py-4 shadow-sm sm:px-5" href="tw_app.html">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#e7f0eb] text-[#075E54]" aria-hidden="true"><i data-lucide="construction" class="h-6 w-6"></i></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-base font-bold text-[#263c36]">Temporary Works Inspection</span>
+          <span class="mt-1 block text-xs text-slate-500">Temporary works site checks</span>
+        </span>
+        <i data-lucide="arrow-up-right" class="h-5 w-5 shrink-0 text-slate-400 transition group-hover:text-[#075E54]" aria-hidden="true"></i>
+      </a>
+
+      <a id="puwerLink" class="launch-link group flex min-h-[82px] items-center gap-4 rounded-xl border border-[#d8ded9] bg-white px-4 py-4 shadow-sm sm:px-5" href="puwer_app.html">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#f8ead9] text-[#9a5e1c]" aria-hidden="true"><i data-lucide="drill" class="h-6 w-6"></i></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-base font-bold text-[#263c36]">PUWER Equipment Inspection</span>
+          <span class="mt-1 block text-xs text-slate-500">Work equipment safety inspection</span>
+        </span>
+        <i data-lucide="arrow-up-right" class="h-5 w-5 shrink-0 text-slate-400 transition group-hover:text-[#075E54]" aria-hidden="true"></i>
+      </a>
+
+      <a id="havsLink" class="launch-link group flex min-h-[82px] items-center gap-4 rounded-xl border border-[#d8ded9] bg-white px-4 py-4 shadow-sm sm:px-5" href="havs_app.html">
+        <span class="grid h-12 w-12 shrink-0 place-items-center rounded-lg bg-[#e5edf0] text-[#426f80]" aria-hidden="true"><i data-lucide="activity" class="h-6 w-6"></i></span>
+        <span class="min-w-0 flex-1">
+          <span class="block text-base font-bold text-[#263c36]">HAVS Daily Briefing</span>
+          <span class="mt-1 block text-xs text-slate-500">Hand-arm vibration daily briefing</span>
+        </span>
+        <i data-lucide="arrow-up-right" class="h-5 w-5 shrink-0 text-slate-400 transition group-hover:text-[#075E54]" aria-hidden="true"></i>
+      </a>
+    </nav>
+
+    <p class="mt-7 border-t border-[#cfd6d1] pt-4 text-center text-xs text-slate-500">Your supervisor and project details will carry into the selected inspection.</p>
+  </main>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const supervisorName = (params.get('name') || '').trim();
+    const projectName = (params.get('project') || '').trim();
+
+    document.getElementById('welcomeHeading').textContent = `Welcome, ${supervisorName || 'Supervisor'}`;
+    document.getElementById('projectName').textContent = projectName || 'Project not specified';
+
+    const contextQuery = `?name=${encodeURIComponent(supervisorName)}&project=${encodeURIComponent(projectName)}`;
+    document.getElementById('temporaryWorksLink').href = `tw_app.html${contextQuery}`;
+    document.getElementById('puwerLink').href = `puwer_app.html${contextQuery}`;
+    document.getElementById('havsLink').href = `havs_app.html${contextQuery}`;
+
+    lucide.createIcons();
+  </script>
+</body>
+</html>
