@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HAVS Daily Briefing</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.0.0/dist/signature_pad.umd.min.js"></script>
     <style>
@@ -236,6 +237,7 @@
         <div class="header-info">
             <span class="header-title" id="header-project">HAVS Briefing</span>
             <span class="header-subtitle" id="header-manager">Setup Required</span>
+            <span class="header-subtitle" id="cloud-status" role="status">Local-only storage</span>
         </div>
         <button class="menu-btn" id="menu-btn">&#8942;</button>
     </header>
@@ -314,11 +316,101 @@
             stream: null
         };
 
+        const SUPABASE_URL = localStorage.getItem('havs_supa_url') || localStorage.getItem('tw_supa_url') || '';
+        const SUPABASE_ANON_KEY = localStorage.getItem('havs_supa_key') || localStorage.getItem('tw_supa_key') || '';
+        let supabaseClient = null;
+
+        function setCloudStatus(message) {
+            const status = document.getElementById('cloud-status');
+            if (status) status.textContent = message;
+        }
+
+        function initializeCloudSync() {
+            if (!SUPABASE_URL || !SUPABASE_ANON_KEY || !window.supabase) {
+                setCloudStatus('Local-only storage');
+                return;
+            }
+            try {
+                supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                setCloudStatus('Cloud sync ready');
+            } catch (error) {
+                console.warn('Supabase initialization failed:', error);
+                setCloudStatus('Local-only storage');
+            }
+        }
+
+        function getAuditProjectIds(projectName) {
+            function readArray(key) {
+                try {
+                    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+                    return Array.isArray(parsed) ? parsed : [];
+                } catch (error) { return []; }
+            }
+            const clients = readArray('tw_clients');
+            const sites = readArray('tw_sites');
+            const matchedSite = sites.find(site => String(site.name || '').toLowerCase() === projectName.toLowerCase());
+            const matchedClient = (matchedSite && clients.find(client => String(client.id) === String(matchedSite.clientId))) ||
+                clients.find(client => String(client.name || '').toLowerCase() === projectName.toLowerCase());
+            return { clientId: matchedClient ? matchedClient.id : null, siteId: matchedSite ? matchedSite.id : null };
+        }
+
+        function saveHavsAuditLocally(audit) {
+            try {
+                const saved = JSON.parse(localStorage.getItem('havs_records') || '[]');
+                const records = Array.isArray(saved) ? saved : [];
+                const index = records.findIndex(record => record && record.id === audit.id);
+                if (index >= 0) records[index] = audit;
+                else records.push(audit);
+                localStorage.setItem('havs_records', JSON.stringify(records));
+            } catch (error) {
+                console.warn('Could not save HAVS audit locally:', error);
+            }
+        }
+
+        async function uploadHavsPdf(audit, pdfBlob, fileName) {
+            if (!supabaseClient) return null;
+            const filePath = 'havs/' + audit.id + '/' + fileName;
+            const uploadRequest = supabaseClient.storage.from('tw_reports').upload(filePath, pdfBlob, {
+                contentType: 'application/pdf',
+                upsert: true
+            });
+            const timeout = new Promise((resolve, reject) => setTimeout(() => reject(new Error('PDF upload timed out')), 6000));
+            const { error } = await Promise.race([uploadRequest, timeout]);
+            if (error) throw error;
+            const { data } = supabaseClient.storage.from('tw_reports').getPublicUrl(filePath);
+            return data ? data.publicUrl : null;
+        }
+
+        async function syncHavsAudit(audit, pdfBlob, fileName) {
+            saveHavsAuditLocally(audit);
+            if (!supabaseClient) {
+                setCloudStatus('Saved locally; cloud keys not configured');
+                return;
+            }
+            try {
+                try {
+                    audit.pdfUrl = await uploadHavsPdf(audit, pdfBlob, fileName) || '';
+                } catch (error) {
+                    console.warn('HAVS PDF upload failed:', error);
+                }
+                saveHavsAuditLocally(audit);
+                const insertRequest = supabaseClient.from('audits').insert([audit]);
+                const timeout = new Promise((resolve, reject) => setTimeout(() => reject(new Error('Audit sync timed out')), 6000));
+                const { error } = await Promise.race([insertRequest, timeout]);
+                if (error) throw error;
+                setCloudStatus(audit.pdfUrl ? 'Audit and PDF synced' : 'Audit synced; PDF remains local');
+            } catch (error) {
+                console.warn('HAVS audit cloud sync failed:', error);
+                setCloudStatus('Saved locally; cloud sync unavailable');
+            }
+        }
+
         const chatContainer = document.getElementById('chat-container');
         const textInput = document.getElementById('text-input');
         const sendBtn = document.getElementById('send-btn');
 
         window.onload = async function() {
+            initializeCloudSync();
             const params = new URLSearchParams(window.location.search);
             const supervisorName = (params.get('name') || '').trim();
             const projectName = (params.get('project') || '').trim();
@@ -881,7 +973,54 @@
             }
 
             var fileName = 'HAVS_' + state.currentOperative.name.replace(/\s/g, '_') + '_' + new Date().toISOString().slice(0, 10) + '.pdf';
+            var pdfBlob = doc.output('blob');
+            var projectIds = getAuditProjectIds(state.setup.project || '');
+            var auditId = 'havs_' + Date.now();
+            var safeTools = 0;
+            var hasActionLevel = false;
+            var hasLimitLevel = false;
+            var toolQuestions = state.currentOperative.tools.map(function(tool, index) {
+                var eavHours = 8 * Math.pow(2.5 / tool.vibration, 2);
+                var elvHours = 8 * Math.pow(5.0 / tool.vibration, 2);
+                var answer = tool.requestedHours > elvHours ? 'No' : (tool.requestedHours > eavHours ? 'Review' : 'Yes');
+                if (answer === 'Yes') safeTools++;
+                if (answer === 'Review') hasActionLevel = true;
+                if (answer === 'No') hasLimitLevel = true;
+                return {
+                    id: auditId + '_tool_' + (index + 1),
+                    topic: (tool.brand || '') + ' ' + (tool.model || ''),
+                    baseTopic: tool.category || 'HAVS tool exposure',
+                    text: tool.vibration + ' m/s2; requested exposure ' + tool.requestedHours + ' hours',
+                    answer: answer,
+                    severity: answer === 'No' ? 'Red' : (answer === 'Review' ? 'Amber' : ''),
+                    type: 'Field Verification',
+                    complianceType: 'havs',
+                    projectName: state.setup.project || '',
+                    operativeName: state.currentOperative.name || '',
+                    managerName: state.setup.name || '',
+                    employer: state.currentOperative.employer || '',
+                    area: state.currentOperative.area || '',
+                    tool: tool
+                };
+            });
+            var audit = {
+                id: auditId,
+                clientId: projectIds.clientId,
+                siteId: projectIds.siteId,
+                date: new Date().toISOString().slice(0, 10),
+                inspectorName: state.setup.name || '',
+                inspectorQuals: (state.setup.role || 'Manager') + ' - HAVS',
+                inspectorNotes: 'Operative: ' + (state.currentOperative.name || 'N/A') + ' | Employer: ' + (state.currentOperative.employer || 'N/A') + ' | Area: ' + (state.currentOperative.area || 'N/A') + ' | Project: ' + (state.setup.project || 'N/A'),
+                auditorSignature: sigData,
+                siteRepName: '',
+                siteRepSignature: '',
+                score: state.currentOperative.tools.length ? Math.round((safeTools / state.currentOperative.tools.length) * 100) : 0,
+                status: hasLimitLevel ? 'Stop Work' : (hasActionLevel ? 'Action Required' : 'Satisfactory'),
+                questions: toolQuestions,
+                pdfUrl: ''
+            };
             doc.save(fileName);
+            syncHavsAudit(audit, pdfBlob, fileName);
             addAppBubble('Report generated. Have a safe shift!');
             state.currentOperative = { name: '', employer: '', area: '', tools: [] };
         }

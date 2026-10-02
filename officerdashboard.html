@@ -346,6 +346,42 @@ logoUrl: "",
 footerText: "Official Temporary Works Inspection Certificate."
 };
 
+function complianceRecordType(record) {
+const nestedType = Array.isArray(record.questions)
+? record.questions.find(question => question && question.complianceType)?.complianceType
+: '';
+const markers = [record.complianceType, record.type, nestedType, record.inspectorQuals].filter(Boolean).map(value => String(value).toLowerCase());
+if (markers.some(value => value.includes('puwer')) || /^puwer[_-]/i.test(String(record.id || ''))) return 'puwer';
+if (markers.some(value => value.includes('havs')) || /^havs[_-]/i.test(String(record.id || ''))) return 'havs';
+return 'tw';
+}
+
+function readStoredRecords(key) {
+try {
+const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+return Array.isArray(parsed) ? parsed : [];
+} catch (error) {
+return [];
+}
+}
+
+function cacheAuditRecords(records) {
+const localRecords = [
+...readStoredRecords('tw_audits'),
+...readStoredRecords('puwer_records'),
+...readStoredRecords('havs_records')
+];
+const merged = new Map();
+[...localRecords, ...records].filter(record => record && record.id !== undefined).forEach(record => {
+merged.set(String(record.id), record);
+});
+const allRecords = Array.from(merged.values());
+audits = allRecords.filter(record => complianceRecordType(record) === 'tw');
+localStorage.setItem('tw_audits', JSON.stringify(audits));
+localStorage.setItem('puwer_records', JSON.stringify(allRecords.filter(record => complianceRecordType(record) === 'puwer')));
+localStorage.setItem('havs_records', JSON.stringify(allRecords.filter(record => complianceRecordType(record) === 'havs')));
+}
+
 window.onload = function() {
 applyBranding();
 if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
@@ -378,7 +414,7 @@ const { data: s, error: sErr } = await supabaseClient.from('sites').select('*');
 if(!sErr && s !== null) { sites = s; localStorage.setItem('tw_sites', JSON.stringify(sites)); }
 
 const { data: a, error: aErr } = await supabaseClient.from('audits').select('*'); 
-if(!aErr && a !== null) { audits = a; localStorage.setItem('tw_audits', JSON.stringify(audits)); }
+if(!aErr && a !== null) cacheAuditRecords(a);
 
 document.getElementById('dbStatusLabel').innerText = "Database Connected";
 } catch(e) {
@@ -470,6 +506,10 @@ function complianceLocation(record) {
 const direct = complianceValue(record, ['siteName', 'projectName', 'site', 'project'], '');
 if (direct && typeof direct === 'object') return String(direct.name || direct.title || '');
 if (direct) return String(direct);
+const projectQuestion = Array.isArray(record.questions)
+? record.questions.find(question => question && (question.siteName || question.projectName))
+: null;
+if (projectQuestion) return String(projectQuestion.siteName || projectQuestion.projectName);
 const site = sites.find(item => String(item.id) === String(record.siteId));
 if (site) return String(site.name || '');
 const client = clients.find(item => String(item.id) === String(record.clientId));
