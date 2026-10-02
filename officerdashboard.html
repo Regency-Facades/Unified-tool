@@ -1,458 +1,1269 @@
-<!DOCTYPE html>
+<DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#253b35">
-  <title>Site Compliance | Officer Dashboard</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
-  <style>
-    :root {
-      color-scheme: light;
-      --ink: #202b28;
-      --muted: #73817c;
-      --line: #dfe6e2;
-      --canvas: #f2f5f2;
-      --surface: #ffffff;
-      --forest: #253b35;
-      --forest-soft: #e8efeb;
-      --lime: #c9df65;
-      --amber: #d98731;
-      --red: #bd5147;
-      --blue: #4c7d91;
-      --shadow: 0 12px 28px rgba(27, 47, 40, .06);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0;
-      background: var(--canvas);
-      color: var(--ink);
-      font-family: 'DM Sans', sans-serif;
-      font-size: 14px;
-    }
-    button, input, select { font: inherit; }
-    button { cursor: pointer; }
-    .topbar {
-      min-height: 76px;
-      background: var(--forest);
-      color: #f8faf8;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 20px;
-      padding: 16px max(24px, calc((100vw - 1440px) / 2));
-      border-bottom: 4px solid var(--lime);
-    }
-    .brand { display: flex; align-items: center; gap: 13px; }
-    .brand-mark {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      color: var(--forest);
-      background: var(--lime);
-      font-family: 'Oswald', sans-serif;
-      font-weight: 700;
-      font-size: 17px;
-      clip-path: polygon(22% 0, 78% 0, 100% 35%, 85% 100%, 15% 100%, 0 35%);
-    }
-    .brand-name { font-family: 'Oswald', sans-serif; font-size: 19px; line-height: 1.05; }
-    .brand-caption { color: #bac8c1; font-size: 11px; margin-top: 4px; }
-    .topbar-meta { display: flex; align-items: center; gap: 9px; color: #dbe5df; font-size: 12px; }
-    .online-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--lime); box-shadow: 0 0 0 4px rgba(201,223,101,.12); }
-    main { max-width: 1440px; margin: 0 auto; padding: 30px 24px 48px; }
-    .page-heading { display: flex; align-items: end; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
-    .eyebrow { color: #74817b; font-size: 10px; text-transform: uppercase; font-weight: 700; letter-spacing: .09em; }
-    h1, h2, h3, p { margin-top: 0; }
-    h1 { font: 600 31px/1.1 'Oswald', sans-serif; margin: 6px 0 0; }
-    .heading-note { max-width: 420px; color: var(--muted); font-size: 12px; text-align: right; }
-    .stat-strip { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 18px; }
-    .stat {
-      background: var(--surface);
-      border: 1px solid var(--line);
-      border-left: 4px solid var(--forest);
-      padding: 15px 18px;
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .stat:nth-child(2) { border-left-color: var(--amber); }
-    .stat:nth-child(3) { border-left-color: var(--blue); }
-    .stat-label { color: var(--muted); font-size: 11px; font-weight: 700; text-transform: uppercase; }
-    .stat-value { font: 600 25px/1 'Oswald', sans-serif; margin-top: 6px; }
-    .stat-type { color: #94a09b; font: 600 11px 'Oswald', sans-serif; text-transform: uppercase; }
-    .workspace { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
-    .registry, .generator { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow); }
-    .registry-head { padding: 20px 20px 0; }
-    .section-title { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
-    h2 { font: 600 20px/1.15 'Oswald', sans-serif; margin: 0; }
-    .record-count { color: var(--muted); font-size: 11px; white-space: nowrap; }
-    .tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-top: 17px; overflow-x: auto; }
-    .tab {
-      padding: 12px 15px 11px;
-      border: 0;
-      border-bottom: 3px solid transparent;
-      background: transparent;
-      color: #78857f;
-      font-size: 12px;
-      font-weight: 700;
-      white-space: nowrap;
-    }
-    .tab[aria-selected="true"] { color: var(--forest); border-bottom-color: var(--amber); }
-    .registry-tools { display: flex; gap: 10px; align-items: center; padding: 15px 20px; }
-    .field-control { height: 38px; border: 1px solid #d5dfda; background: #fbfcfb; color: var(--ink); padding: 0 11px; outline: none; }
-    .field-control:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(76,125,145,.12); }
-    .search-control { flex: 1; min-width: 120px; }
-    .site-control { min-width: 185px; }
-    .table-wrap { width: 100%; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; text-align: left; }
-    th { background: #f5f8f6; color: #77847e; padding: 11px 14px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); font-size: 10px; text-transform: uppercase; white-space: nowrap; }
-    td { padding: 14px; border-bottom: 1px solid #edf1ee; font-size: 12px; vertical-align: middle; }
-    tbody tr:last-child td { border-bottom: 0; }
-    tbody tr:hover { background: #fafcfb; }
-    .primary-cell { color: var(--ink); font-weight: 700; }
-    .secondary-cell { color: var(--muted); font-size: 10px; margin-top: 3px; }
-    .status { display: inline-flex; align-items: center; gap: 6px; padding: 5px 8px; color: #4e655a; background: var(--forest-soft); font-size: 10px; font-weight: 700; white-space: nowrap; }
-    .status.warn { color: #98611f; background: #fff2df; }
-    .status.alert { color: #9b4139; background: #fae9e7; }
-    .empty-state { padding: 45px 20px; text-align: center; color: var(--muted); }
-    .empty-icon { width: 37px; height: 37px; margin: 0 auto 12px; display: grid; place-items: center; color: var(--forest); background: var(--forest-soft); font: 600 16px 'Oswald', sans-serif; }
-    .empty-title { color: var(--ink); font-weight: 700; margin-bottom: 5px; }
-    .empty-copy { font-size: 11px; }
-    .generator { border-top: 4px solid var(--amber); padding: 19px; }
-    .generator-title { display: flex; align-items: center; gap: 10px; }
-    .generator-icon { display: grid; place-items: center; width: 32px; height: 32px; background: #fff2df; color: #9d5a1b; font: 700 13px 'Oswald', sans-serif; }
-    .generator h2 { font-size: 18px; }
-    .generator-intro { color: var(--muted); font-size: 11px; line-height: 1.5; margin: 12px 0 18px; }
-    .form-field { margin-bottom: 14px; }
-    label { display: block; margin-bottom: 6px; font-size: 11px; font-weight: 700; color: #46534e; }
-    .form-field input, .form-field select { width: 100%; height: 40px; border: 1px solid #d5dfda; background: #fbfcfb; padding: 0 11px; color: var(--ink); outline: none; }
-    .form-field input:focus, .form-field select:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(76,125,145,.12); }
-    .generate-button { width: 100%; height: 42px; border: 0; background: var(--forest); color: #fff; font-weight: 700; font-size: 12px; transition: background .18s ease, transform .18s ease; }
-    .generate-button:hover { background: #34544a; transform: translateY(-1px); }
-    .link-result { margin-top: 16px; padding-top: 15px; border-top: 1px solid var(--line); }
-    .link-result[hidden] { display: none; }
-    .link-label { color: var(--muted); text-transform: uppercase; font-size: 10px; font-weight: 700; margin-bottom: 7px; }
-    .copy-row { display: flex; gap: 6px; }
-    .copy-row input { min-width: 0; flex: 1; height: 38px; border: 1px solid #d5dfda; padding: 0 9px; font-family: monospace; font-size: 10px; color: #45534d; background: #f7f9f7; }
-    .copy-button { width: 40px; height: 38px; flex: 0 0 40px; border: 1px solid var(--forest); background: var(--forest); color: white; font-weight: 700; font-size: 11px; }
-    .copy-button:hover { background: #34544a; }
-    .copy-feedback { min-height: 15px; color: #39704c; font-size: 10px; margin-top: 6px; }
-    .footnote { color: #87938d; font-size: 10px; line-height: 1.45; padding-top: 13px; margin: 0; }
-    @media (max-width: 980px) {
-      .workspace { grid-template-columns: minmax(0, 1fr) 300px; }
-      .site-control { min-width: 150px; }
-    }
-    @media (max-width: 760px) {
-      .topbar { padding: 14px 18px; }
-      main { padding: 23px 16px 36px; }
-      .page-heading { align-items: start; flex-direction: column; }
-      .heading-note { text-align: left; }
-      .workspace { grid-template-columns: 1fr; }
-      .generator { grid-row: 1; }
-    }
-    @media (max-width: 520px) {
-      .topbar-meta { font-size: 0; }
-      .stat-strip { gap: 7px; }
-      .stat { padding: 12px 10px; align-items: start; flex-direction: column; gap: 8px; }
-      .stat-value { font-size: 22px; }
-      .registry-head { padding: 16px 14px 0; }
-      .registry-tools { padding: 12px 14px; flex-direction: column; align-items: stretch; }
-      .site-control { width: 100%; }
-      .search-control { width: 100%; }
-      th, td { padding-left: 10px; padding-right: 10px; }
-    }
-    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Temporary Works UK - TWC Office Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+<style>
+body { background-color: #f8fafc; font-family: ui-sans-serif, system-ui, sans-serif; }
+.custom-header { background-color: #78350f; color: #ffffff; } 
+</style>
 </head>
-<body>
-  <header class="topbar">
-    <div class="brand">
-      <div class="brand-mark" aria-hidden="true">SC</div>
-      <div>
-        <div class="brand-name">SITE COMPLIANCE</div>
-        <div class="brand-caption">Unified construction assurance</div>
-      </div>
-    </div>
-    <div class="topbar-meta"><span class="online-dot" aria-hidden="true"></span> Officer workspace</div>
-  </header>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
 
-  <main>
-    <div class="page-heading">
-      <div>
-        <div class="eyebrow">Operations / Assurance</div>
-        <h1>Officer dashboard</h1>
-      </div>
-      <div class="heading-note">Inspection records across Temporary Works, work equipment and vibration exposure.</div>
-    </div>
+<!-- HEADER -->
+<header id="mainHeader" class="custom-header p-4 sm:p-6 shadow-md transition-colors duration-300">
+<div class="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+<div class="flex items-center gap-3">
+<div id="logoHeaderBox" class="flex items-center"><i data-lucide="hard-hat" class="w-8 h-8 text-amber-400"></i></div>
+<div>
+<h1 id="appTitle" class="text-2xl font-bold tracking-tight">Temporary Works UK</h1>
+<p id="appSubtitle" class="text-xs opacity-90 mt-0.5">BS 5975 & CDM 2015 Compliance System (TWC Portal)</p>
+</div>
+</div>
+<div class="flex flex-wrap items-center gap-2">
+<button type="button" onclick="openBrandingModal()" class="bg-black/20 hover:bg-black/30 border border-white/20 px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5"><i data-lucide="palette" class="w-4 h-4"></i> Branding Panel</button>
+<button type="button" onclick="openDbModal()" class="bg-black/20 hover:bg-black/30 border border-white/20 px-3.5 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5"><i data-lucide="database" class="w-4 h-4"></i> <span id="dbStatusLabel">Database Sync</span></button>
+<button type="button" onclick="openClientModal()" class="bg-amber-700 hover:bg-amber-600 border border-amber-500/50 text-white px-3 py-2 rounded-lg text-sm font-medium transition">+ Register Project</button>
+<button type="button" onclick="openSiteModal()" class="bg-amber-700 hover:bg-amber-600 border border-amber-500/50 text-white px-3 py-2 rounded-lg text-sm font-medium transition">+ Register Site</button>
+<button type="button" onclick="openManageModal()" class="bg-slate-700 hover:bg-slate-600 text-white px-3 py-2 rounded-lg text-sm font-medium transition flex items-center gap-1.5"><i data-lucide="folder-cog" class="w-4 h-4"></i> Manage Projects & Sites</button>
+</div>
+</div>
+</header>
 
-    <section class="stat-strip" aria-label="Record totals">
-      <div class="stat"><div><div class="stat-label">Temporary Works</div><div class="stat-value" id="twTotal">0</div></div><div class="stat-type">TWC</div></div>
-      <div class="stat"><div><div class="stat-label">PUWER</div><div class="stat-value" id="puwerTotal">0</div></div><div class="stat-type">Equipment</div></div>
-      <div class="stat"><div><div class="stat-label">HAVS</div><div class="stat-value" id="havsTotal">0</div></div><div class="stat-type">Exposure</div></div>
-    </section>
+<!-- MAIN VIEW -->
+<main class="max-w-7xl mx-auto w-full p-4 sm:p-6 flex-grow space-y-6">
 
-    <div class="workspace">
-      <section class="registry" aria-labelledby="registryTitle">
-        <div class="registry-head">
-          <div class="section-title">
-            <h2 id="registryTitle">Compliance records</h2>
-            <span class="record-count" id="recordCount" aria-live="polite">0 records</span>
-          </div>
-          <div class="tabs" role="tablist" aria-label="Compliance record type">
-            <button class="tab" id="tab-tw" role="tab" type="button" aria-selected="true" aria-controls="recordsPanel" data-type="tw">Temporary Works</button>
-            <button class="tab" id="tab-puwer" role="tab" type="button" aria-selected="false" aria-controls="recordsPanel" data-type="puwer">PUWER</button>
-            <button class="tab" id="tab-havs" role="tab" type="button" aria-selected="false" aria-controls="recordsPanel" data-type="havs">HAVS</button>
-          </div>
-        </div>
-        <div class="registry-tools">
-          <input class="field-control search-control" id="recordSearch" type="search" placeholder="Search records" aria-label="Search records">
-          <select class="field-control site-control" id="siteFilter" aria-label="Filter by site or project">
-            <option value="">All sites / projects</option>
-          </select>
-        </div>
-        <div id="recordsPanel" role="tabpanel" aria-labelledby="tab-tw">
-          <div class="table-wrap">
-            <table>
-              <thead><tr><th>Date</th><th>Record</th><th>Site / Project</th><th>Inspector</th><th>Outcome</th></tr></thead>
-              <tbody id="recordsBody"></tbody>
-            </table>
-          </div>
-        </div>
-      </section>
+<nav class="bg-white p-2 rounded-xl shadow-sm border border-slate-200 flex flex-wrap gap-2" aria-label="Compliance records" role="tablist">
+<button id="complianceTabTw" type="button" role="tab" aria-selected="true" onclick="switchComplianceView('tw')" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-900 text-white">Temporary Works</button>
+<button id="complianceTabPuwer" type="button" role="tab" aria-selected="false" onclick="switchComplianceView('puwer')" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">PUWER</button>
+<button id="complianceTabHavs" type="button" role="tab" aria-selected="false" onclick="switchComplianceView('havs')" class="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100">HAVS</button>
+</nav>
 
-      <aside class="generator" aria-labelledby="generatorTitle">
-        <div class="generator-title">
-          <div class="generator-icon" aria-hidden="true">↗</div>
-          <h2 id="generatorTitle">Supervisor Link Generator</h2>
-        </div>
-        <p class="generator-intro">Create a site-specific link for a supervisor to open their compliance workspace.</p>
-        <form id="linkForm">
-          <div class="form-field">
-            <label for="supervisorName">Supervisor Name</label>
-            <input id="supervisorName" name="name" type="text" autocomplete="name" placeholder="e.g. Alex Morgan" required>
-          </div>
-          <div class="form-field">
-            <label for="supervisorProject">Site/Project</label>
-            <select id="supervisorProject" name="project" required>
-              <option value="">Select a site or project</option>
-            </select>
-          </div>
-          <button class="generate-button" type="submit">Generate Secure Link</button>
-        </form>
-        <div class="link-result" id="linkResult" hidden>
-          <div class="link-label">Supervisor URL</div>
-          <div class="copy-row">
-            <input id="generatedLink" type="text" readonly aria-label="Generated supervisor link">
-            <button class="copy-button" id="copyLink" type="button" aria-label="Copy supervisor link" title="Copy link">Copy</button>
-          </div>
-          <div class="copy-feedback" id="copyFeedback" aria-live="polite"></div>
-        </div>
-        <p class="footnote">The selected site and supervisor name are URL-encoded in the link.</p>
-      </aside>
-    </div>
-  </main>
+<div id="complianceViewTw" role="tabpanel" aria-labelledby="complianceTabTw" class="space-y-6">
 
-  <script>
-    const recordSources = {
-      tw: ['tw_audits'],
-      puwer: ['puwer_records', 'puwer_audits'],
-      havs: ['havs_records', 'havs_audits']
-    };
-    const typeLabels = { tw: 'Temporary Works', puwer: 'PUWER', havs: 'HAVS' };
-    let activeType = 'tw';
-    let allRecords = { tw: [], puwer: [], havs: [] };
-    let sites = [];
-    let clients = [];
+<section class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap items-center justify-between gap-4">
+<div class="flex flex-wrap items-center gap-3">
+<span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Global Filter:</span>
+<select id="clientFilter" onchange="applyFilters()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none"><option value="ALL">All Projects</option></select>
+<select id="siteFilter" onchange="applyFilters()" class="bg-slate-50 border border-slate-300 rounded-lg px-3 py-1.5 text-sm font-medium focus:outline-none"><option value="ALL">All Site Locations</option></select>
+</div>
 
-    function readArray(key) {
-      try {
-        const parsed = JSON.parse(localStorage.getItem(key) || '[]');
-        if (Array.isArray(parsed)) return parsed;
-        if (parsed && Array.isArray(parsed.records)) return parsed.records;
-      } catch (error) {
-        console.warn(`Unable to read ${key} from local storage.`, error);
-      }
-      return [];
-    }
+<div class="flex items-center bg-slate-100 p-1 rounded-lg text-sm">
+<button id="tabOverview" type="button" onclick="switchTab('overview')" class="px-3.5 py-1.5 rounded-md font-semibold bg-white text-amber-900 shadow-sm transition"><i data-lucide="layout-dashboard" class="w-4 h-4 inline mr-1"></i> Executive Analytics</button>
+<button id="tabHistory" type="button" onclick="switchTab('history')" class="px-3.5 py-1.5 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition"><i data-lucide="history" class="w-4 h-4 inline mr-1"></i> Site History</button>
+<button id="tabExplorer" type="button" onclick="switchTab('explorer')" class="px-3.5 py-1.5 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition"><i data-lucide="search" class="w-4 h-4 inline mr-1"></i> Inspection Records & Closure</button>
+</div>
+</section>
 
-    function loadRecords(type) {
-      for (const key of recordSources[type]) {
-        const records = readArray(key);
-        if (records.length) return records.map(record => ({ ...record, complianceType: type }));
-      }
-      return readArray('compliance_records')
-        .filter(record => String(record.type || record.complianceType || '').toLowerCase() === type)
-        .map(record => ({ ...record, complianceType: type }));
-    }
+<!-- OVERVIEW TAB -->
+<div id="viewOverview" class="space-y-6">
+<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider">🟢 Compliant / Satisfactory</p>
+<h2 id="kpiPassed" class="text-3xl font-extrabold text-emerald-600 mt-1">0</h2>
+<p class="text-xs text-slate-500 mt-2">Verified installations & permits</p>
+</div>
+<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider">🟠 Minor Defect (Remediate)</p>
+<h2 id="kpiOrange" class="text-3xl font-extrabold text-amber-500 mt-1">0</h2>
+<p class="text-xs text-slate-500 mt-2">Action required, low immediate risk</p>
+</div>
+<div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+<p class="text-xs font-bold text-slate-400 uppercase tracking-wider">🔴 Stop Work / Prohibited</p>
+<h2 id="kpiRed" class="text-3xl font-extrabold text-red-600 mt-1">0</h2>
+<p class="text-xs text-slate-500 mt-2">Permit revoked / High risk failure</p>
+</div>
+</div>
 
-    function loadLocations() {
-      sites = readArray('tw_sites');
-      clients = readArray('tw_clients');
-      const locationNames = new Set();
-      sites.forEach(site => { if (site && site.name) locationNames.add(String(site.name)); });
-      clients.forEach(client => { if (client && client.name) locationNames.add(String(client.name)); });
-      const names = [...locationNames].sort((a, b) => a.localeCompare(b));
-      ['siteFilter', 'supervisorProject'].forEach(id => {
-        const select = document.getElementById(id);
-        const initial = id === 'siteFilter' ? '<option value="">All sites / projects</option>' : '<option value="">Select a site or project</option>';
-        select.innerHTML = initial;
-        names.forEach(name => {
-          const option = document.createElement('option');
-          option.value = name;
-          option.textContent = name;
-          select.append(option);
-        });
-      });
-    }
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+<h3 class="text-base font-bold text-slate-800 mb-4">Category Compliance Performance (%)</h3>
+<div class="h-64 relative"><canvas id="categoryChart"></canvas></div>
+</div>
+<div class="bg-white p-6 rounded-xl border border-slate-200 shadow-sm">
+<h3 class="text-base font-bold text-slate-800 mb-4">Field Verification vs. Documentation (Permits/Registers)</h3>
+<div class="h-64 relative"><canvas id="typeChart"></canvas></div>
+</div>
+</div>
+</div>
 
-    function recordSite(record) {
-      const direct = record.siteName || record.projectName || record.site || record.project;
-      if (direct && typeof direct === 'object') return String(direct.name || direct.title || '');
-      if (direct) return String(direct);
-      const site = sites.find(item => String(item.id) === String(record.siteId));
-      if (site) return String(site.name || '');
-      const client = clients.find(item => String(item.id) === String(record.clientId));
-      return client ? String(client.name || '') : '';
-    }
+<!-- SITE HISTORY TAB -->
+<div id="viewHistory" class="hidden space-y-4">
+<div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm space-y-4">
+<h3 class="font-bold text-slate-800">Project & Site Historical Inspection Performance</h3>
+<div id="historyContainer" class="space-y-3"></div>
+</div>
+</div>
 
-    function firstValue(record, fields, fallback = '') {
-      for (const field of fields) {
-        const value = record[field];
-        if (value !== undefined && value !== null && String(value).trim() !== '') return value;
-      }
-      return fallback;
-    }
+<!-- AUDIT EXPLORER TAB -->
+<div id="viewExplorer" class="hidden space-y-4">
+<div class="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+<h3 class="font-bold text-slate-800 mb-3">Field Inspection Registry</h3>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm border-collapse">
+<thead>
+<tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider">
+<th class="p-3">Inspection Date</th><th class="p-3">Project / Site Location</th><th class="p-3">TWS / Inspector</th><th class="p-3">Compliance Score</th><th class="p-3">Report Status</th><th class="p-3 text-right">Administrative Actions</th>
+</tr>
+</thead>
+<tbody id="auditTableBody" class="divide-y text-xs text-slate-700"></tbody>
+</table>
+</div>
+</div>
+</div>
 
-    function recordTitle(record, type) {
-      const fields = type === 'tw'
-        ? ['title', 'systemName', 'workPackage', 'structureName', 'category', 'name']
-        : type === 'puwer'
-          ? ['equipmentName', 'toolName', 'assetName', 'equipment', 'itemName', 'asset', 'name']
-          : ['toolName', 'equipmentName', 'assetName', 'tool', 'itemName', 'name'];
-      return String(firstValue(record, fields, firstValue(record, ['reference', 'recordId', 'id'], 'Inspection record')));
-    }
+<section class="bg-white p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm" aria-labelledby="supervisorLinkTitle">
+<div class="flex items-center gap-3 mb-2">
+<div class="w-9 h-9 rounded-lg bg-amber-100 text-amber-900 flex items-center justify-center" aria-hidden="true"><i data-lucide="link-2" class="w-5 h-5"></i></div>
+<h2 id="supervisorLinkTitle" class="text-lg font-bold text-slate-800">Supervisor Link Generator</h2>
+</div>
+<p class="text-sm text-slate-500 mb-5">Create a site-specific link for a supervisor.</p>
+<form onsubmit="generateSupervisorLink(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div>
+<label for="supervisorName" class="block text-sm font-semibold text-slate-700 mb-1.5">Supervisor Name</label>
+<input id="supervisorName" type="text" autocomplete="name" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-600" placeholder="e.g. Alex Morgan" />
+</div>
+<div>
+<label for="supervisorProject" class="block text-sm font-semibold text-slate-700 mb-1.5">Site/Project</label>
+<select id="supervisorProject" required class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-amber-600">
+<option value="">Select a site or project</option>
+</select>
+</div>
+<div class="md:col-span-2">
+<button type="submit" class="px-4 py-2.5 rounded-lg bg-amber-900 hover:bg-amber-800 text-white text-sm font-semibold transition">Generate Secure Link</button>
+</div>
+</form>
+<div id="supervisorLinkOutput" class="hidden mt-5 pt-4 border-t border-slate-200">
+<label for="generatedSupervisorLink" class="block text-xs font-bold uppercase tracking-wider text-slate-500 mb-2">Supervisor URL</label>
+<div class="flex gap-2">
+<input id="generatedSupervisorLink" type="text" readonly aria-label="Generated supervisor link" class="min-w-0 flex-1 border border-slate-300 rounded-lg px-3 py-2 text-xs font-mono bg-slate-50 text-slate-700" />
+<button type="button" onclick="copySupervisorLink()" class="shrink-0 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-white text-sm font-semibold">Copy</button>
+</div>
+<p id="supervisorCopyStatus" class="min-h-5 mt-1 text-xs text-emerald-700" aria-live="polite"></p>
+</div>
+</section>
+</div>
 
-    function recordDate(record) {
-      const date = firstValue(record, ['date', 'inspectionDate', 'createdAt', 'timestamp'], 'Date not recorded');
-      const parsed = new Date(date);
-      return Number.isNaN(parsed.getTime()) || date === 'Date not recorded' ? String(date) : parsed.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-    }
+<section id="complianceViewPuwer" role="tabpanel" aria-labelledby="complianceTabPuwer" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
+<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+<h2 class="text-lg font-bold text-slate-800">PUWER Compliance Records</h2>
+<span id="puwerRecordCount" class="text-xs text-slate-500">0 records</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm border-collapse">
+<thead><tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider"><th class="p-3">Date</th><th class="p-3">Equipment / Record</th><th class="p-3">Site / Project</th><th class="p-3">Inspector</th><th class="p-3">Outcome</th></tr></thead>
+<tbody id="puwerRecordsBody" class="divide-y text-xs text-slate-700"></tbody>
+</table>
+</div>
+</section>
 
-    function recordStatus(record) {
-      const value = String(firstValue(record, ['status', 'result', 'condition', 'riskLevel', 'rating'], 'Recorded'));
-      const normalized = value.toLowerCase();
-      const kind = /stop|fail|prohibit|high risk|red/.test(normalized) ? 'alert' : /open|action|review|medium|amber|minor/.test(normalized) ? 'warn' : '';
-      return { value, kind };
-    }
+<section id="complianceViewHavs" role="tabpanel" aria-labelledby="complianceTabHavs" class="hidden bg-white rounded-xl border border-slate-200 shadow-sm p-4 sm:p-6">
+<div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+<h2 class="text-lg font-bold text-slate-800">HAVS Compliance Records</h2>
+<span id="havsRecordCount" class="text-xs text-slate-500">0 records</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm border-collapse">
+<thead><tr class="bg-slate-50 text-slate-500 border-b text-xs font-medium uppercase tracking-wider"><th class="p-3">Date</th><th class="p-3">Equipment / Record</th><th class="p-3">Site / Project</th><th class="p-3">Inspector</th><th class="p-3">Outcome</th></tr></thead>
+<tbody id="havsRecordsBody" class="divide-y text-xs text-slate-700"></tbody>
+</table>
+</div>
+</section>
 
-    function makeCell(primary, secondary) {
-      const cell = document.createElement('td');
-      const main = document.createElement('div');
-      main.className = 'primary-cell';
-      main.textContent = primary;
-      cell.append(main);
-      if (secondary) {
-        const detail = document.createElement('div');
-        detail.className = 'secondary-cell';
-        detail.textContent = secondary;
-        cell.append(detail);
-      }
-      return cell;
-    }
+</main>
 
-    function renderRecords() {
-      const tbody = document.getElementById('recordsBody');
-      const search = document.getElementById('recordSearch').value.trim().toLowerCase();
-      const selectedSite = document.getElementById('siteFilter').value;
-      const records = allRecords[activeType].filter(record => {
-        const site = recordSite(record);
-        const searchable = [recordTitle(record, activeType), site, record.inspectorName, record.inspector, record.supervisorName, record.status, record.result, record.reference, record.id].filter(Boolean).join(' ').toLowerCase();
-        return (!selectedSite || site === selectedSite) && (!search || searchable.includes(search));
-      });
-      document.getElementById('recordCount').textContent = `${records.length} ${records.length === 1 ? 'record' : 'records'}`;
-      document.getElementById('recordsPanel').setAttribute('aria-labelledby', `tab-${activeType}`);
-      tbody.replaceChildren();
+<!-- MANAGE PROJECTS & SITES MODAL -->
+<div id="manageModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+<div class="bg-white rounded-xl max-w-2xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-lg flex items-center gap-2"><i data-lucide="folder-cog" class="w-5 h-5 text-amber-700"></i> Manage Projects & Site Locations</h3>
+<button type="button" onclick="closeManageModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<p class="text-xs text-slate-500">Full CRUD control: edit project details, edit site locations, or delete them. All updates sync directly with Supabase.</p>
+<div id="manageClientsList" class="space-y-4 pt-2"></div>
+<div class="flex justify-end pt-3 border-t">
+<button type="button" onclick="closeManageModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-xs">Done</button>
+</div>
+</div>
+</div>
 
-      if (!records.length) {
-        const row = document.createElement('tr');
-        const cell = document.createElement('td');
-        cell.colSpan = 5;
-        cell.innerHTML = `<div class="empty-state"><div class="empty-icon">${activeType.toUpperCase()}</div><div class="empty-title">No ${typeLabels[activeType]} records found</div><div class="empty-copy">Records will appear here when available for this category.</div></div>`;
-        row.append(cell);
-        tbody.append(row);
-        return;
-      }
+<!-- EDIT PROJECT MODAL -->
+<div id="editClientModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-[60]">
+<div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-3">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5 text-amber-700"></i> Edit Project Details</h3>
+<button type="button" onclick="closeEditClientModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<form onsubmit="handleSaveEditClient(event)" class="space-y-3 text-xs">
+<input type="hidden" id="editClientId" />
+<div><label class="block font-semibold mb-1">Project Name / Client *</label><input type="text" id="editClientName" required class="w-full border rounded p-2" /></div>
+<div><label class="block font-semibold mb-1">Principal Contractor Rep</label><input type="text" id="editClientRep" class="w-full border rounded p-2" /></div>
+<div><label class="block font-semibold mb-1">Contact Email</label><input type="email" id="editClientEmail" class="w-full border rounded p-2" /></div>
+<div class="flex justify-end gap-2 pt-2">
+<button type="button" onclick="closeEditClientModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded">Cancel</button>
+<button type="submit" class="px-4 py-2 bg-amber-800 hover:bg-amber-700 text-white rounded font-bold shadow">Save Changes</button>
+</div>
+</form>
+</div>
+</div>
 
-      records.sort((a, b) => new Date(firstValue(b, ['date', 'inspectionDate', 'createdAt'], 0)) - new Date(firstValue(a, ['date', 'inspectionDate', 'createdAt'], 0)));
-      records.forEach(record => {
-        const row = document.createElement('tr');
-        row.append(makeCell(recordDate(record), ''));
-        row.append(makeCell(recordTitle(record, activeType), String(firstValue(record, ['reference', 'recordId'], ''))));
-        row.append(makeCell(recordSite(record) || 'Site not recorded', ''));
-        row.append(makeCell(String(firstValue(record, ['inspectorName', 'inspector', 'assessor', 'supervisorName'], 'Not recorded')), String(firstValue(record, ['inspectorQuals', 'qualification'], ''))));
-        const status = recordStatus(record);
-        const outcomeCell = document.createElement('td');
-        const badge = document.createElement('span');
-        badge.className = `status ${status.kind}`;
-        badge.textContent = status.value;
-        outcomeCell.append(badge);
-        const score = firstValue(record, ['score', 'overallScore']);
-        if (score !== '') {
-          const scoreText = document.createElement('div');
-          scoreText.className = 'secondary-cell';
-          scoreText.textContent = `Score: ${score}${String(score).includes('%') ? '' : '%'}`;
-          outcomeCell.append(scoreText);
-        }
-        row.append(outcomeCell);
-        tbody.append(row);
-      });
-    }
+<!-- EDIT SITE MODAL -->
+<div id="editSiteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-[60]">
+<div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-3">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-base flex items-center gap-2"><i data-lucide="edit-3" class="w-5 h-5 text-amber-700"></i> Edit Site Location</h3>
+<button type="button" onclick="closeEditSiteModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<form onsubmit="handleSaveEditSite(event)" class="space-y-3 text-xs">
+<input type="hidden" id="editSiteId" />
+<div><label class="block font-semibold mb-1">Assigned Project *</label><select id="editSiteClientId" required class="w-full border rounded p-2"></select></div>
+<div><label class="block font-semibold mb-1">Site Location Name *</label><input type="text" id="editSiteName" required class="w-full border rounded p-2" /></div>
+<div class="flex justify-end gap-2 pt-2">
+<button type="button" onclick="closeEditSiteModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded">Cancel</button>
+<button type="submit" class="px-4 py-2 bg-amber-800 hover:bg-amber-700 text-white rounded font-bold shadow">Save Changes</button>
+</div>
+</form>
+</div>
+</div>
 
-    function refresh() {
-      loadLocations();
-      Object.keys(recordSources).forEach(type => {
-        allRecords[type] = loadRecords(type);
-        document.getElementById(`${type}Total`).textContent = allRecords[type].length;
-      });
-      renderRecords();
-    }
+<!-- AUDIT CLOSURE MODAL -->
+<div id="inspectModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+<div class="bg-white rounded-xl max-w-3xl w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-lg">Inspection Review & Formal TWC Sign-Off</h3>
+<button type="button" onclick="closeInspectModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-200">
+Review non-compliant items, attach remediation evidence regarding temporary works components, add formal sign-off comments, and close the report as the Temporary Works Coordinator.
+</div>
+<div id="inspectModalBody" class="space-y-4 text-xs"></div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs border-t pt-3">
+<div><label class="block font-semibold mb-1">TWC Closing Officer Name *</label><input type="text" id="inputClosedBy" class="w-full border rounded-lg p-2" placeholder="e.g. D. Smith (TWC)" /></div>
+<div><label class="block font-semibold mb-1">Closure Date</label><input type="date" id="inputClosedDate" class="w-full border rounded-lg p-2" /></div>
+</div>
+<div class="flex justify-end gap-2 border-t pt-4">
+<button type="button" onclick="closeInspectModal()" class="px-4 py-2 bg-slate-100 text-slate-700 font-bold rounded-lg border">Cancel</button>
+<button type="button" onclick="saveAndCloseReport(this)" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-lg shadow transition">Sign-Off, Generate PDF & Close Report</button>
+</div>
+</div>
+</div>
 
-    document.querySelectorAll('.tab').forEach(tab => {
-      tab.addEventListener('click', () => {
-        activeType = tab.dataset.type;
-        document.querySelectorAll('.tab').forEach(item => item.setAttribute('aria-selected', String(item === tab)));
-        renderRecords();
-      });
-    });
-    document.getElementById('recordSearch').addEventListener('input', renderRecords);
-    document.getElementById('siteFilter').addEventListener('change', renderRecords);
-    document.getElementById('linkForm').addEventListener('submit', event => {
-      event.preventDefault();
-      const name = document.getElementById('supervisorName').value.trim();
-      const project = document.getElementById('supervisorProject').value;
-      if (!name || !project) return;
-      const link = `supervisor.html?name=${encodeURIComponent(name)}&project=${encodeURIComponent(project)}`;
-      document.getElementById('generatedLink').value = link;
-      document.getElementById('linkResult').hidden = false;
-      document.getElementById('copyFeedback').textContent = '';
-    });
-    document.getElementById('copyLink').addEventListener('click', async () => {
-      const input = document.getElementById('generatedLink');
-      try {
-        await navigator.clipboard.writeText(input.value);
-      } catch (error) {
-        input.select();
-        document.execCommand('copy');
-        input.setSelectionRange(0, 0);
-      }
-      document.getElementById('copyFeedback').textContent = 'Link copied to clipboard.';
-    });
-    window.addEventListener('storage', refresh);
-    refresh();
-  </script>
+<!-- LIGHTBOX MODAL -->
+<div id="lightboxModal" class="fixed inset-0 bg-black/90 hidden items-center justify-center p-4 z-[100]" onclick="closeLightbox()">
+<img id="lightboxImg" src="" class="max-w-full max-h-full rounded shadow-2xl object-contain cursor-zoom-out" />
+</div>
+
+<!-- BRANDING MODAL -->
+<div id="brandingModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+<div class="bg-white rounded-xl max-w-lg w-full p-6 shadow-xl space-y-3 max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-base">Branding & Customization</h3>
+<button type="button" onclick="closeBrandingModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<form onsubmit="handleSaveBranding(event)" class="space-y-3 text-xs">
+<div><label class="block font-semibold mb-1">Company / Organization Title</label><input type="text" id="inputBrandTitle" class="w-full border rounded p-2" required /></div>
+<div><label class="block font-semibold mb-1">Subtitle / Compliance Standard</label><input type="text" id="inputBrandSubtitle" class="w-full border rounded p-2" /></div>
+<div class="grid grid-cols-2 gap-2">
+<div><label class="block font-semibold mb-1">Header Theme Color</label><input type="color" id="inputBrandColor" class="w-full h-10 border rounded p-1 cursor-pointer" /></div>
+<div><label class="block font-semibold mb-1">Header Text Color</label><input type="color" id="inputBrandTextColor" class="w-full h-10 border rounded p-1 cursor-pointer" /></div>
+</div>
+<div>
+<label class="block font-semibold mb-1">Company Logo (Best for rectangular/square badges)</label>
+<input type="file" accept="image/*" onchange="handleLogoUpload(this)" class="w-full border rounded p-1.5" />
+<input type="hidden" id="inputBrandLogoUrl" />
+</div>
+<div><label class="block font-semibold mb-1">Official PDF Report Footer / Disclaimer Notice</label><textarea id="inputBrandFooter" rows="3" class="w-full border rounded p-2" placeholder="Official Temporary Works Audit Certificate..."></textarea></div>
+<div class="flex justify-end gap-2 pt-2"><button type="submit" class="px-4 py-2 bg-amber-800 hover:bg-amber-700 text-white rounded font-bold shadow">Save Branding Parameters</button></div>
+</form>
+</div>
+</div>
+
+<!-- DB MODAL -->
+<div id="dbModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+<div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-3 max-h-[90vh] overflow-y-auto">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-base">Supabase Cloud Sync</h3>
+<button type="button" onclick="closeDbModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<form onsubmit="handleSaveDbKeys(event)" class="space-y-3 text-xs">
+<div><label class="block font-semibold mb-1">Supabase Project URL</label><input type="text" id="inputSupaUrl" class="w-full border rounded p-2 font-mono" placeholder="https://xyz.supabase.co" /></div>
+<div><label class="block font-semibold mb-1">Supabase Anon Key</label><input type="text" id="inputSupaKey" class="w-full border rounded p-2 font-mono" placeholder="ey..." /></div>
+<div class="flex flex-col gap-2 pt-2">
+<button type="submit" class="w-full py-2.5 bg-amber-800 hover:bg-amber-700 text-white rounded font-bold shadow">Save Sync Keys & Connect</button>
+<button type="button" onclick="clearLocalCacheAndReload()" class="w-full py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-bold border">Clear Local Cache & Fetch Fresh</button>
+</div>
+</form>
+</div>
+</div>
+
+<!-- CLIENT/PROJECT MODAL -->
+<div id="clientModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+<div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-3">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-base">Register New Project / Client</h3>
+<button type="button" onclick="closeClientModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<form onsubmit="handleSaveClient(event)" class="space-y-3 text-xs">
+<div><label class="block font-semibold mb-1">Project Name (or Client Org) *</label><input type="text" id="inputClientName" required class="w-full border rounded p-2" placeholder="e.g. Crossrail Phase 2" /></div>
+<div><label class="block font-semibold mb-1">Principal Contractor Rep</label><input type="text" id="inputClientRep" class="w-full border rounded p-2" placeholder="e.g. Project Manager" /></div>
+<div><label class="block font-semibold mb-1">Contact Email</label><input type="email" id="inputClientEmail" class="w-full border rounded p-2" placeholder="pm@example.com" /></div>
+<div class="flex justify-end pt-2"><button type="submit" class="px-4 py-2 bg-amber-800 hover:bg-amber-700 text-white rounded font-bold">Register Project</button></div>
+</form>
+</div>
+</div>
+
+<!-- SITE MODAL -->
+<div id="siteModal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm hidden items-center justify-center p-4 z-50">
+<div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl space-y-3">
+<div class="flex items-center justify-between border-b pb-3">
+<h3 class="font-bold text-slate-800 text-base">Register Construction Site</h3>
+<button type="button" onclick="closeSiteModal()"><i data-lucide="x" class="w-5 h-5 text-slate-400 hover:text-slate-600"></i></button>
+</div>
+<form onsubmit="handleSaveSite(event)" class="space-y-3 text-xs">
+<div><label class="block font-semibold mb-1">Select Project *</label><select id="selectSiteClient" required class="w-full border rounded p-2"></select></div>
+<div><label class="block font-semibold mb-1">Site Location Name *</label><input type="text" id="inputSiteName" required class="w-full border rounded p-2" placeholder="e.g. Station Box Area B" /></div>
+<div class="flex justify-end pt-2"><button type="submit" class="px-4 py-2 bg-amber-800 hover:bg-amber-700 text-white rounded font-bold">Register Site</button></div>
+</form>
+</div>
+</div>
+
+<script>
+let SUPABASE_URL = localStorage.getItem('tw_supa_url') || "";
+let SUPABASE_ANON_KEY = localStorage.getItem('tw_supa_key') || "";
+let supabaseClient = null;
+let categoryChartInst = null;
+let typeChartInst = null;
+let activeInspectAuditId = null;
+
+let clients = JSON.parse(localStorage.getItem('tw_clients')) || [];
+let sites = JSON.parse(localStorage.getItem('tw_sites')) || [];
+let audits = JSON.parse(localStorage.getItem('tw_audits')) || [];
+let branding = JSON.parse(localStorage.getItem('tw_branding')) || {
+title: "Temporary Works UK",
+subtitle: "BS 5975 & CDM 2015 Compliance System",
+color: "#78350f",
+textColor: "#ffffff",
+logoUrl: "",
+footerText: "Official Temporary Works Inspection Certificate."
+};
+
+window.onload = function() {
+applyBranding();
+if (SUPABASE_URL && SUPABASE_ANON_KEY && window.supabase) {
+try { supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY); } catch(e){}
+}
+fetchData();
+};
+
+function applyBranding() {
+document.getElementById('appTitle').innerText = branding.title || "Temporary Works UK";
+document.getElementById('appSubtitle').innerText = branding.subtitle || "BS 5975 & CDM 2015 System";
+const header = document.getElementById('mainHeader');
+header.style.backgroundColor = branding.color || '#78350f';
+header.style.color = branding.textColor || '#ffffff';
+if (branding.logoUrl) {
+document.getElementById('logoHeaderBox').innerHTML = '<img src="' + branding.logoUrl + '" class="h-10 max-w-[120px] object-contain rounded bg-white p-1 shadow-sm" />';
+} else {
+document.getElementById('logoHeaderBox').innerHTML = '<i data-lucide="hard-hat" class="w-8 h-8 text-amber-400"></i>';
+}
+lucide.createIcons();
+}
+
+async function fetchData() {
+if (supabaseClient) {
+try {
+const { data: c, error: cErr } = await supabaseClient.from('clients').select('*'); 
+if(!cErr && c !== null) { clients = c; localStorage.setItem('tw_clients', JSON.stringify(clients)); }
+
+const { data: s, error: sErr } = await supabaseClient.from('sites').select('*'); 
+if(!sErr && s !== null) { sites = s; localStorage.setItem('tw_sites', JSON.stringify(sites)); }
+
+const { data: a, error: aErr } = await supabaseClient.from('audits').select('*'); 
+if(!aErr && a !== null) { audits = a; localStorage.setItem('tw_audits', JSON.stringify(audits)); }
+
+document.getElementById('dbStatusLabel').innerText = "Database Connected";
+} catch(e) {
+document.getElementById('dbStatusLabel').innerText = "Sync Warning";
+}
+}
+populateDropdowns();
+renderDashboard();
+renderComplianceRecords('puwer');
+renderComplianceRecords('havs');
+}
+
+function clearLocalCacheAndReload() {
+if (confirm("Clear local cache? This will flush local projects/sites and fetch fresh data from your connected Supabase project.")) {
+localStorage.removeItem('tw_clients');
+localStorage.removeItem('tw_sites');
+localStorage.removeItem('tw_audits');
+location.reload();
+}
+}
+
+function switchTab(tab) {
+document.getElementById('viewOverview').classList.add('hidden');
+document.getElementById('viewHistory').classList.add('hidden');
+document.getElementById('viewExplorer').classList.add('hidden');
+document.getElementById('tabOverview').className = "px-3.5 py-1.5 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition";
+document.getElementById('tabHistory').className = "px-3.5 py-1.5 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition";
+document.getElementById('tabExplorer').className = "px-3.5 py-1.5 rounded-md font-semibold text-slate-600 hover:text-slate-900 transition";
+
+if (tab === 'overview') {
+document.getElementById('viewOverview').classList.remove('hidden');
+document.getElementById('tabOverview').className = "px-3.5 py-1.5 rounded-md font-semibold bg-white text-amber-900 shadow-sm transition";
+} else if (tab === 'history') {
+document.getElementById('viewHistory').classList.remove('hidden');
+document.getElementById('tabHistory').className = "px-3.5 py-1.5 rounded-md font-semibold bg-white text-amber-900 shadow-sm transition";
+} else if (tab === 'explorer') {
+document.getElementById('viewExplorer').classList.remove('hidden');
+document.getElementById('tabExplorer').className = "px-3.5 py-1.5 rounded-md font-semibold bg-white text-amber-900 shadow-sm transition";
+}
+}
+
+function switchComplianceView(type) {
+const views = { tw: 'complianceViewTw', puwer: 'complianceViewPuwer', havs: 'complianceViewHavs' };
+const tabs = { tw: 'complianceTabTw', puwer: 'complianceTabPuwer', havs: 'complianceTabHavs' };
+Object.keys(views).forEach(key => {
+document.getElementById(views[key]).classList.toggle('hidden', key !== type);
+const tab = document.getElementById(tabs[key]);
+tab.setAttribute('aria-selected', String(key === type));
+tab.className = key === type
+? 'px-4 py-2 rounded-lg text-sm font-semibold bg-amber-900 text-white'
+: 'px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-100';
+});
+if (type === 'puwer' || type === 'havs') renderComplianceRecords(type);
+}
+
+function readComplianceRecords(key) {
+try {
+const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+if (Array.isArray(parsed)) return parsed;
+if (parsed && Array.isArray(parsed.records)) return parsed.records;
+} catch (error) {
+console.warn('Unable to read compliance records from local storage.', error);
+}
+return [];
+}
+
+function getComplianceRecords(type) {
+const keys = type === 'puwer' ? ['puwer_records', 'puwer_audits'] : ['havs_records', 'havs_audits'];
+for (const key of keys) {
+const records = readComplianceRecords(key);
+if (records.length) return records;
+}
+return readComplianceRecords('compliance_records').filter(record =>
+String(record.type || record.complianceType || '').toLowerCase() === type
+);
+}
+
+function complianceValue(record, fields, fallback) {
+for (const field of fields) {
+const value = record[field];
+if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+}
+return fallback;
+}
+
+function complianceLocation(record) {
+const direct = complianceValue(record, ['siteName', 'projectName', 'site', 'project'], '');
+if (direct && typeof direct === 'object') return String(direct.name || direct.title || '');
+if (direct) return String(direct);
+const site = sites.find(item => String(item.id) === String(record.siteId));
+if (site) return String(site.name || '');
+const client = clients.find(item => String(item.id) === String(record.clientId));
+return client ? String(client.name || '') : '';
+}
+
+function renderComplianceRecords(type) {
+const tbody = document.getElementById(type + 'RecordsBody');
+const records = getComplianceRecords(type);
+const count = document.getElementById(type + 'RecordCount');
+count.textContent = records.length + (records.length === 1 ? ' record' : ' records');
+tbody.replaceChildren();
+
+if (records.length === 0) {
+const row = document.createElement('tr');
+const cell = document.createElement('td');
+cell.colSpan = 5;
+cell.className = 'p-6 text-center text-slate-400';
+cell.textContent = 'No ' + (type === 'puwer' ? 'PUWER' : 'HAVS') + ' records found.';
+row.appendChild(cell);
+tbody.appendChild(row);
+return;
+}
+
+const titleFields = type === 'puwer'
+? ['equipmentName', 'toolName', 'assetName', 'equipment', 'itemName', 'name']
+: ['toolName', 'equipmentName', 'assetName', 'tool', 'itemName', 'name'];
+records.slice().sort((a, b) => new Date(complianceValue(b, ['date', 'inspectionDate', 'createdAt'], 0)) - new Date(complianceValue(a, ['date', 'inspectionDate', 'createdAt'], 0))).forEach(record => {
+const row = document.createElement('tr');
+const dateValue = complianceValue(record, ['date', 'inspectionDate', 'createdAt'], 'Date not recorded');
+const parsedDate = new Date(dateValue);
+const dateText = Number.isNaN(parsedDate.getTime()) ? String(dateValue) : parsedDate.toLocaleDateString();
+const values = [
+dateText,
+String(complianceValue(record, titleFields, complianceValue(record, ['reference', 'recordId', 'id'], 'Inspection record'))),
+complianceLocation(record) || 'Site not recorded',
+String(complianceValue(record, ['inspectorName', 'inspector', 'assessor', 'supervisorName'], 'Not recorded')),
+String(complianceValue(record, ['status', 'result', 'condition', 'riskLevel', 'rating'], 'Recorded'))
+];
+values.forEach(value => {
+const cell = document.createElement('td');
+cell.className = 'p-3';
+cell.textContent = value;
+row.appendChild(cell);
+});
+tbody.appendChild(row);
+});
+}
+
+function generateSupervisorLink(event) {
+event.preventDefault();
+const name = document.getElementById('supervisorName').value.trim();
+const project = document.getElementById('supervisorProject').value;
+if (!name || !project) return;
+document.getElementById('generatedSupervisorLink').value = 'supervisor.html?name=' + encodeURIComponent(name) + '&project=' + encodeURIComponent(project);
+document.getElementById('supervisorLinkOutput').classList.remove('hidden');
+document.getElementById('supervisorCopyStatus').textContent = '';
+}
+
+async function copySupervisorLink() {
+const input = document.getElementById('generatedSupervisorLink');
+try {
+await navigator.clipboard.writeText(input.value);
+} catch (error) {
+input.select();
+document.execCommand('copy');
+input.setSelectionRange(0, 0);
+}
+document.getElementById('supervisorCopyStatus').textContent = 'Link copied to clipboard.';
+}
+
+function renderDashboard() {
+const selectedClient = document.getElementById('clientFilter').value;
+const selectedSite = document.getElementById('siteFilter').value;
+
+let filteredAudits = audits.filter(a => {
+const mc = selectedClient === 'ALL' || a.clientId === selectedClient;
+const ms = selectedSite === 'ALL' || a.siteId === selectedSite;
+return mc && ms;
+});
+
+let passed = 0, orange = 0, red = 0;
+const topicList = [];
+filteredAudits.forEach(a => {
+(a.questions || []).forEach(q => {
+const chartTopic = q.baseTopic || q.topic; 
+if (chartTopic && topicList.indexOf(chartTopic) === -1) topicList.push(chartTopic);
+});
+});
+
+let topicPasses = {};
+topicList.forEach(t => { topicPasses[t] = { pass: 0, total: 0 }; });
+
+let physPass = 0, physTot = 0, paperPass = 0, paperTot = 0;
+
+filteredAudits.forEach(a => {
+(a.questions || []).forEach(q => {
+const chartTopic = q.baseTopic || q.topic;
+if (q.answer === 'Yes') {
+passed++;
+if (topicPasses[chartTopic]) topicPasses[chartTopic].pass++;
+if (q.type === 'Field Verification') physPass++; else paperPass++;
+}
+if (q.answer === 'No') {
+if (q.severity === 'Red') red++; else orange++;
+}
+if (q.answer !== 'N/A') {
+if (topicPasses[chartTopic]) topicPasses[chartTopic].total++;
+if (q.type === 'Field Verification') physTot++; else paperTot++;
+}
+});
+});
+
+document.getElementById('kpiPassed').innerText = passed;
+document.getElementById('kpiOrange').innerText = orange;
+document.getElementById('kpiRed').innerText = red;
+
+renderCharts(topicPasses, topicList, physPass, physTot, paperPass, paperTot);
+renderHistoryPanel();
+renderAuditTable(filteredAudits);
+}
+
+function renderCharts(topicData, topicList, physPass, physTot, paperPass, paperTot) {
+const labels = topicList.map(t => t.split('.')[1] || t);
+const scores = topicList.map(t => topicData[t] && topicData[t].total > 0 ? Math.round((topicData[t].pass / topicData[t].total) * 100) : 0);
+
+if (categoryChartInst) categoryChartInst.destroy();
+categoryChartInst = new Chart(document.getElementById('categoryChart').getContext('2d'), {
+type: 'bar',
+data: { labels: labels, datasets: [{ label: 'Compliance Rate %', data: scores, backgroundColor: branding.color || '#78350f' }] },
+options: { responsive: true, maintainAspectRatio: false, scales: { y: { max: 100, min: 0 } } }
+});
+
+if (typeChartInst) typeChartInst.destroy();
+typeChartInst = new Chart(document.getElementById('typeChart').getContext('2d'), {
+type: 'doughnut',
+data: {
+labels: ['Field Verification', 'Documentation (Permits)'],
+datasets: [{ data: [physTot ? Math.round((physPass/physTot)*100) : 0, paperTot ? Math.round((paperPass/paperTot)*100) : 0], backgroundColor: ['#f59e0b', '#78350f'] }]
+},
+options: { responsive: true, maintainAspectRatio: false }
+});
+}
+
+function renderHistoryPanel() {
+const container = document.getElementById('historyContainer');
+if (sites.length === 0) {
+container.innerHTML = '<p class="text-slate-500 text-sm">No sites registered yet to track history.</p>';
+return;
+}
+
+container.innerHTML = sites.map(s => {
+const siteAudits = audits.filter(a => a.siteId === s.id).sort((x,y) => new Date(y.date) - new Date(x.date));
+const last = siteAudits[0];
+const cl = clients.find(c => c.id === s.clientId) || {};
+
+if (!last) return '<div class="p-3 border border-slate-200 rounded-lg text-xs bg-slate-50"><p class="font-bold text-slate-800">' + s.name + ' (' + (cl.name || '') + ')</p><p class="text-slate-400 mt-1">No inspection history recorded yet.</p></div>';
+
+let totalQs = (last.questions || []).filter(q => q.answer !== 'N/A').length;
+let addressedCount = (last.questions || []).filter(q => q.answer === 'Yes' || q.status === 'Closed').length;
+
+return '<div class="p-4 border border-slate-200 rounded-lg bg-white flex flex-col md:flex-row justify-between items-start md:items-center text-xs gap-3 shadow-sm">' +
+'<div>' +
+'<p class="font-bold text-slate-800 text-sm mb-1">' + s.name + ' <span class="text-amber-800 font-medium">(' + (cl.name || '') + ')</span></p>' +
+'<p class="text-slate-500">Last Inspection: <span class="font-medium">' + last.date + '</span> | Score: <strong class="text-amber-900 text-sm">' + last.score + '%</strong></p>' +
+'<p class="text-[11px] text-emerald-700 mt-1 font-medium bg-emerald-50 inline-block px-2 py-0.5 rounded border border-emerald-200">✓ ' + addressedCount + ' of ' + totalQs + ' applicable TW criteria verified or remediated</p>' +
+'</div>' +
+'<span class="px-3 py-1.5 rounded-lg font-bold uppercase tracking-wider text-[10px] border ' + (last.status === 'Closed' ? 'bg-emerald-100 text-emerald-800 border-emerald-300' : 'bg-amber-100 text-amber-800 border-amber-300') + '">' + (last.status || 'Open (Pending)') + '</span>' +
+'</div>';
+}).join('');
+}
+
+function renderAuditTable(filteredAudits) {
+const tbody = document.getElementById('auditTableBody');
+tbody.innerHTML = filteredAudits.length === 0 ? '<tr><td colspan="6" class="p-6 text-center text-slate-400">No inspection records found.</td></tr>' : '';
+
+filteredAudits.forEach(a => {
+const c = clients.find(x => x.id === a.clientId) || {};
+const s = sites.find(x => x.id === a.siteId) || {};
+const isClosed = a.status === 'Closed';
+
+tbody.innerHTML += '<tr class="hover:bg-slate-50 border-b border-slate-100">' +
+'<td class="p-3 font-medium whitespace-nowrap">' + a.date + '</td>' +
+'<td class="p-3"><p class="font-bold text-slate-800">' + (s.name || 'Unknown') + '</p><p class="text-amber-800 text-[10px] uppercase">' + (c.name || '') + '</p></td>' +
+'<td class="p-3"><span class="font-bold block">' + (a.inspectorName || '') + '</span><span class="text-[10px] text-slate-500">' + (a.inspectorQuals || '') + '</span></td>' +
+'<td class="p-3"><span class="font-bold text-sm ' + (a.score >= 80 ? 'text-emerald-700' : 'text-amber-700') + '">' + a.score + '%</span></td>' +
+'<td class="p-3"><span class="px-2.5 py-1 rounded text-[10px] font-bold uppercase tracking-wider border ' + (isClosed ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-amber-50 text-amber-700 border-amber-200') + '">' + (isClosed ? 'Closed' : 'Open') + '</span></td>' +
+'<td class="p-3 text-right whitespace-nowrap">' +
+(a.pdfUrl ? '<a href="' + a.pdfUrl + '" target="_blank" class="bg-blue-600 hover:bg-blue-500 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-sm transition mr-1 inline-flex items-center gap-1">Cloud PDF</a>' : '') +
+'<button onclick="openInspectModal(\'' + a.id + '\')" class="bg-slate-800 hover:bg-slate-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-sm transition mr-1">Review & Close</button>' +
+'<button onclick="emailAuditReport(\'' + a.id + '\')" class="bg-amber-600 hover:bg-amber-500 text-white px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-sm transition mr-1">Email</button>' +
+'<button onclick="downloadPDF(\'' + a.id + '\')" class="bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 px-2.5 py-1.5 rounded-lg font-bold text-xs shadow-sm transition mr-1">PDF</button>' +
+'<button onclick="deleteAudit(\'' + a.id + '\')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2 py-1.5 rounded-lg font-bold text-xs transition">Delete</button>' +
+'</td></tr>';
+});
+}
+
+function addImageToPdf(doc, imageStr, x, y, width, height) {
+if (!imageStr || typeof imageStr !== 'string' || imageStr.indexOf('data:image') !== 0) return false;
+if (imageStr === 'SKIP') return false;
+try {
+let fmt = 'JPEG';
+if (imageStr.indexOf('image/png') !== -1) fmt = 'PNG';
+else if (imageStr.indexOf('image/webp') !== -1) fmt = 'WEBP';
+doc.addImage(imageStr, fmt, x, y, width, height);
+return true;
+} catch (err) { return false; }
+}
+
+function buildCompletePdfDocument(audit, c, s) {
+const { jsPDF } = window.jspdf;
+const doc = new jsPDF();
+const themeColor = branding.color || '#78350f';
+
+doc.setFillColor(themeColor);
+doc.rect(0, 0, 210, 30, 'F');
+let textStartX = 14;
+if (branding.logoUrl) {
+const logoSuccess = addImageToPdf(doc, branding.logoUrl, 12, 4, 32, 12);
+if (logoSuccess) textStartX = 48;
+}
+
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(15);
+doc.setFont("helvetica", "bold");
+doc.text(branding.title || 'Temporary Works Inspection UK', textStartX, 16);
+doc.setFontSize(9);
+doc.setFont("helvetica", "normal");
+doc.text('Official Inspection Certificate | Status: ' + (audit.status === 'Closed' ? 'CLOSED (Remediated)' : 'OPEN (Action Needed)'), textStartX, 23);
+
+doc.setTextColor(40, 40, 40);
+doc.setFontSize(10);
+doc.setFont("helvetica", "bold");
+doc.text("Project & Site Details:", 14, 40);
+doc.setFontSize(8.5);
+doc.setFont("helvetica", "normal");
+doc.text('Project/Client: ' + (c.name || 'N/A') + ' (Rep: ' + (c.rep || 'N/A') + ')', 14, 46);
+doc.text('Site Location: ' + (s.name || 'N/A'), 14, 51);
+doc.text('Inspector / TWS: ' + (audit.inspectorName || 'N/A') + ' (' + (audit.inspectorQuals || 'N/A') + ')', 14, 56);
+doc.text('Inspection Date: ' + (audit.date || 'N/A'), 125, 46);
+doc.text('Overall Score: ' + audit.score + '%', 125, 51);
+doc.text('Report Ref: TWR-' + String(audit.id || '').substring(2, 10), 125, 56);
+
+const tableRows = [];
+(audit.questions || []).forEach(q => {
+if (q.photo === 'SKIP') return;
+
+let result = q.answer === 'Yes' ? 'Compliant' : (q.answer === 'No' ? 'Defect' : 'N/A');
+let urgency = q.answer === 'No' ? (q.severity === 'Red' ? 'PROHIBITION' : 'MINOR') : '-';
+let findings = q.comment || '-';
+if (q.photo && q.photo !== 'SKIP') findings += ' [Photo Attached]';
+tableRows.push([q.topic.replace(' (TW Item)', ''), q.type, q.text, result, urgency, findings]);
+});
+
+doc.autoTable({
+startY: 62,
+head: [['Temporary Works Item', 'Verification', 'Criteria Checked', 'Result', 'Urgency', 'TWS Observations']],
+body: tableRows,
+headStyles: { fillColor: themeColor, fontSize: 8, fontStyle: 'bold' },
+styles: { fontSize: 7, cellPadding: 2, overflow: 'linebreak' },
+columnStyles: { 0: { cellWidth: 32 }, 1: { cellWidth: 26 }, 2: { cellWidth: 62 }, 3: { cellWidth: 20 }, 4: { cellWidth: 18 }, 5: { cellWidth: 24 } },
+didParseCell: function(data) {
+if (data.section === 'body' && data.column.index === 3) {
+if (data.cell.raw === 'Defect') { data.cell.styles.textColor = [220, 38, 38]; data.cell.styles.fontStyle = 'bold'; }
+if (data.cell.raw === 'Compliant') { data.cell.styles.textColor = [16, 185, 129]; }
+}
+},
+didDrawPage: function(data) {
+doc.setFillColor(themeColor);
+doc.rect(0, 0, 210, 26, 'F');
+doc.setTextColor(255, 255, 255);
+doc.setFontSize(14);
+doc.setFont("helvetica", "bold");
+doc.text(branding.title || 'Temporary Works Inspection UK', 14, 12);
+doc.setFontSize(8.5);
+doc.setFont("helvetica", "normal");
+doc.text(`Official Report | Project: ${c.name || 'N/A'} | Site: ${s.name || 'N/A'} | Date: ${audit.date}`, 14, 20);
+
+doc.setFontSize(7);
+doc.setTextColor(150, 150, 150);
+doc.text("Official Temporary Works Inspection Certificate.", 14, 288);
+doc.text(`Page ${doc.internal.getNumberOfPages()}`, 185, 288);
+}
+});
+
+// APPENDIX A
+doc.addPage();
+let yPos = 35;
+doc.setTextColor(40, 40, 40);
+doc.setFontSize(11);
+doc.setFont("helvetica", "bold");
+doc.text("Appendix A: Field Photographic Evidence & Defect Logs", 14, yPos);
+yPos += 8;
+
+const photoItems = (audit.questions || []).filter(q => (q.photo && q.photo !== 'SKIP') || (q.closurePhoto && q.closurePhoto !== 'SKIP'));
+
+if (photoItems.length === 0) {
+doc.setFontSize(9);
+doc.setFont("helvetica", "normal");
+doc.text("No photographic evidence recorded in this inspection.", 14, yPos);
+} else {
+photoItems.forEach((q, idx) => {
+if (yPos > 230) { doc.addPage(); yPos = 35; }
+doc.setFontSize(9);
+doc.setFont("helvetica", "bold");
+const splitTitle = doc.splitTextToSize((idx + 1) + '. [' + q.topic + '] - ' + q.text, 180);
+doc.text(splitTitle, 14, yPos);
+yPos += (splitTitle.length * 4.5) + 2;
+
+doc.setFontSize(8);
+doc.setFont("helvetica", "normal");
+const isDefect = q.answer === 'No';
+doc.text('Status: ' + (isDefect ? 'DEFECT / NON-COMPLIANT' : 'VERIFIED COMPLIANT'), 14, yPos);
+yPos += 5;
+doc.text('TWS Field Finding: ' + (q.comment || 'No comment provided.'), 14, yPos);
+yPos += 5;
+
+if (isDefect) {
+doc.text('TWC Remediation Note: ' + (q.closureNote || 'Pending review.'), 14, yPos);
+yPos += 6;
+}
+
+let imageRowHeight = 0;
+if (q.photo && q.photo !== 'SKIP') {
+if(addImageToPdf(doc, q.photo, 14, yPos, 50, 38)) { doc.setFontSize(7); doc.setTextColor(100,100,100); doc.text("Field Evidence", 14, yPos + 42); imageRowHeight = 46; }
+}
+if (q.closurePhoto && q.closurePhoto !== 'SKIP') {
+if(addImageToPdf(doc, q.closurePhoto, 72, yPos, 50, 38)) { doc.setFontSize(7); doc.setTextColor(100,100,100); doc.text("Remediation Evidence", 72, yPos + 42); imageRowHeight = 46; }
+}
+yPos += (imageRowHeight > 0 ? imageRowHeight + 4 : 4);
+doc.setDrawColor(220, 220, 220);
+doc.line(14, yPos, 196, yPos);
+yPos += 6;
+});
+}
+
+doc.addPage();
+yPos = 35;
+doc.setFontSize(11);
+doc.setFont("helvetica", "bold");
+doc.text("Appendix B: Supervisor Summary & Final Declarations", 14, yPos);
+yPos += 8;
+
+doc.setFontSize(10);
+doc.setFont("helvetica", "bold");
+doc.text("TWS Summary Remarks:", 14, yPos);
+yPos += 6;
+doc.setFontSize(9);
+doc.setFont("helvetica", "normal");
+const notesSplit = doc.splitTextToSize((audit.inspectorNotes || "No summary provided."), 180);
+doc.text(notesSplit, 14, yPos);
+yPos += (notesSplit.length * 5) + 12;
+
+doc.setFontSize(10); doc.setFont("helvetica", "bold");
+doc.text("TWS Sign-Off (Field):", 14, yPos);
+doc.text("Site Rep Acknowledgement:", 110, yPos);
+yPos += 5;
+
+if (audit.auditorSignature) addImageToPdf(doc, audit.auditorSignature, 14, yPos, 55, 22);
+if (audit.siteRepSignature) addImageToPdf(doc, audit.siteRepSignature, 110, yPos, 55, 22);
+yPos += 26;
+
+doc.setDrawColor(60, 60, 60); doc.line(14, yPos, 78, yPos); doc.line(110, yPos, 174, yPos);
+yPos += 5;
+doc.setFontSize(8.5); doc.setFont("helvetica", "normal");
+doc.text('Name: ' + (audit.inspectorName || 'N/A') + ' (' + (audit.inspectorQuals || 'N/A') + ')', 14, yPos);
+doc.text('Name: ' + (audit.siteRepName || 'N/A'), 110, yPos);
+yPos += 12;
+
+doc.setFontSize(10); doc.setFont("helvetica", "bold");
+doc.text("TWC Formal Closure Record:", 14, yPos);
+yPos += 5;
+doc.setFontSize(8.5); doc.setFont("helvetica", "normal");
+doc.text('Status: ' + (audit.status === 'Closed' ? 'CLOSED (Verified Safe)' : 'OPEN (Pending)'), 14, yPos);
+yPos += 5;
+doc.text('TWC Name: ' + (audit.closedBy || 'N/A'), 14, yPos);
+yPos += 5;
+doc.text('Closure Date: ' + (audit.closedDate || 'N/A'), 14, yPos);
+
+return doc;
+}
+
+async function uploadPdfToSupabase(audit, pdfBlob) {
+if (!supabaseClient) return null;
+try {
+const fileName = `TW_Report_${audit.id}_${audit.date}.pdf`;
+const filePath = `reports/${fileName}`;
+
+const { data: uploadData, error: uploadError } = await supabaseClient.storage
+.from('tw_reports')
+.upload(filePath, pdfBlob, { contentType: 'application/pdf', upsert: true });
+
+if (uploadError) return null;
+const { data: urlData } = supabaseClient.storage.from('tw_reports').getPublicUrl(filePath);
+return urlData ? urlData.publicUrl : null;
+} catch(err) {
+return null;
+}
+}
+
+async function emailAuditReport(auditId) {
+const audit = audits.find(a => a.id === auditId);
+if (!audit) return;
+const c = clients.find(x => x.id === audit.clientId) || { name: 'Project', email: '', rep: 'Representative' };
+const s = sites.find(x => x.id === audit.siteId) || { name: 'Site' };
+
+const doc = buildCompletePdfDocument(audit, c, s);
+const pdfBlob = doc.output('blob');
+const fileName = 'TW_Report_' + s.name.replace(/\s+/g, '_') + '_' + audit.date + '.pdf';
+const pdfFile = new File([pdfBlob], fileName, { type: 'application/pdf' });
+
+const nonCompliant = (audit.questions || []).filter(q => q.answer === 'No');
+let findingsText = '• 100% Compliant verified.';
+if (nonCompliant.length > 0) {
+findingsText = nonCompliant.map((q, idx) => `${idx + 1}. [${q.severity === 'Red' ? 'PROHIBITION' : 'DEFECT'}] ${q.topic.replace(' (TW Item)', '')}\nItem: ${q.text}`).join('\n');
+}
+
+const shareText = `Dear ${c.rep || 'Site Management'},\n\nRE: TEMPORARY WORKS INSPECTION REPORT\nSite: ${s.name}\nDate: ${audit.date}\nScore: ${audit.score}%\n\nPlease find attached the official TW inspection certificate.\n\nDEFECTS NOTED:\n${findingsText}`;
+
+if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+try { await navigator.share({ title: 'TW Report - ' + s.name, text: shareText, files: [pdfFile] }); return; }
+catch (err) { if (err.name !== 'AbortError') console.warn(err); }
+}
+
+doc.save(fileName);
+setTimeout(() => window.location.href = `mailto:${c.email || ''}?subject=${encodeURIComponent('TW Report - ' + s.name)}&body=${encodeURIComponent(shareText)}`, 500);
+}
+
+function downloadPDF(auditId) {
+const audit = audits.find(a => a.id === auditId);
+if (!audit) return;
+const c = clients.find(x => x.id === audit.clientId) || { name: 'Unknown', rep: 'Rep' };
+const s = sites.find(x => x.id === audit.siteId) || { name: 'Unknown' };
+buildCompletePdfDocument(audit, c, s).save('TW_Report_' + s.name.replace(/\s+/g, '_') + '_' + audit.date + '.pdf');
+}
+
+async function deleteAudit(auditId) {
+if (!confirm("Delete this TW inspection record permanently?")) return;
+audits = audits.filter(a => a.id !== auditId);
+localStorage.setItem('tw_audits', JSON.stringify(audits));
+if (supabaseClient) { try { await supabaseClient.from('audits').delete().eq('id', auditId); } catch(e){} }
+renderDashboard();
+}
+
+function openInspectModal(auditId) {
+activeInspectAuditId = auditId;
+const audit = audits.find(a => a.id === auditId);
+if (!audit) return;
+
+document.getElementById('inputClosedDate').value = audit.closedDate || new Date().toISOString().split('T')[0];
+document.getElementById('inputClosedBy').value = audit.closedBy || '';
+
+const nonCompliant = (audit.questions || []).filter(q => q.answer === 'No');
+let bodyHtml = '';
+
+if (nonCompliant.length === 0) {
+bodyHtml = '<div class="p-4 bg-emerald-50 border border-emerald-200 rounded-lg text-emerald-800 text-center font-semibold">No defects found. Ready for formal TWC sign-off.</div>';
+} else {
+bodyHtml = '<div class="bg-blue-50 text-blue-800 p-3 rounded-lg text-xs border border-blue-200 mb-4 font-medium">Review defective TW items, attach remediation evidence, and formally sign-off below.</div><div class="space-y-4 pr-2">';
+nonCompliant.forEach(q => {
+bodyHtml += '<div class="p-4 border rounded-xl bg-slate-50 shadow-sm relative overflow-hidden">' +
+'<div class="absolute top-0 left-0 w-1.5 h-full ' + (q.severity === 'Red' ? 'bg-red-500' : 'bg-amber-500') + '"></div>' +
+'<div class="ml-2">' +
+'<div class="flex justify-between items-start gap-2 mb-2">' +
+'<h4 class="font-bold text-slate-800 text-sm leading-tight">' + q.topic + '</h4>' +
+'<span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border whitespace-nowrap ' + (q.severity === 'Red' ? 'bg-red-100 text-red-800 border-red-200' : 'bg-amber-100 text-amber-800 border-amber-200') + '">' + (q.severity === 'Red' ? 'Prohibition' : 'Minor Defect') + '</span>' +
+'</div>' +
+'<p class="text-xs text-slate-700 font-medium mb-3 pl-2 border-l-2 border-slate-300">' + q.text + '</p>' +
+'<div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-3 rounded-lg border border-slate-200">' +
+'<div><p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">TWS Field Finding</p>' +
+'<p class="text-xs text-slate-800 italic mb-2">"' + (q.comment || 'No comment.') + '"</p>' +
+((q.photo && q.photo !== 'SKIP') ? '<img src="' + q.photo + '" class="w-20 h-20 object-cover rounded-lg border shadow-sm cursor-zoom-in" onclick="openLightbox(this.src)" />' : '<p class="text-[10px] text-slate-400">No field photo.</p>') +
+'</div>' +
+'<div class="border-t md:border-t-0 md:border-l border-slate-100 pt-3 md:pt-0 md:pl-4">' +
+'<p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">TWC Remediation Action</p>' +
+'<textarea id="closure_note_' + q.id + '" placeholder="Enter TWC sign-off remarks..." rows="2" class="w-full border rounded-lg p-2 text-xs bg-slate-50 focus:ring-2 focus:ring-amber-500 mb-2">' + (q.closureNote || '') + '</textarea>' +
+'<div class="flex items-center gap-3">' +
+'<label class="cursor-pointer bg-slate-800 hover:bg-slate-700 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm">Attach Photo<input type="file" accept="image/*" class="hidden" onchange="compressAndSetClosurePhoto(\'' + auditId + '\', \'' + q.id + '\', this)" /></label>' +
+'<div id="closure_photo_container_' + q.id + '">' + ((q.closurePhoto && q.closurePhoto !== 'SKIP') ? '<img src="' + q.closurePhoto + '" class="w-10 h-10 object-cover rounded border shadow-sm cursor-zoom-in" onclick="openLightbox(this.src)" />' : '') + '</div>' +
+'</div></div></div></div></div>';
+});
+bodyHtml += '</div>';
+}
+
+document.getElementById('inspectModalBody').innerHTML = bodyHtml;
+document.getElementById('inspectModal').classList.remove('hidden');
+document.getElementById('inspectModal').classList.add('flex');
+lucide.createIcons();
+}
+
+function closeInspectModal() { document.getElementById('inspectModal').classList.add('hidden'); document.getElementById('inspectModal').classList.remove('flex'); }
+
+function compressAndSetClosurePhoto(auditId, qId, input) {
+if (input.files && input.files[0]) {
+const reader = new FileReader();
+reader.onload = function(e) {
+const img = new Image();
+img.onload = function() {
+const canvas = document.createElement('canvas');
+let width = img.width, height = img.height;
+if (width > 600) { height = Math.round((height * 600) / width); width = 600; }
+canvas.width = width; canvas.height = height;
+canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.6);
+const audit = audits.find(a => a.id === auditId);
+if (audit) {
+const q = audit.questions.find(x => x.id === qId);
+if (q) {
+q.closurePhoto = compressedDataUrl;
+document.getElementById('closure_photo_container_' + qId).innerHTML = '<img src="' + compressedDataUrl + '" class="w-10 h-10 object-cover rounded border shadow-sm cursor-zoom-in" onclick="openLightbox(this.src)" />';
+}
+}
+};
+img.src = e.target.result;
+};
+reader.readAsDataURL(input.files[0]);
+}
+}
+
+async function saveAndCloseReport(btn) {
+const originalText = btn.innerText;
+btn.innerText = "Processing & Uploading PDF..."; btn.disabled = true;
+try {
+const audit = audits.find(a => a.id === activeInspectAuditId);
+if (audit) {
+const closedBy = document.getElementById('inputClosedBy').value.trim();
+if (!closedBy) { alert("Enter TWC name to close report."); btn.innerText = originalText; btn.disabled = false; return; }
+audit.status = 'Closed'; audit.closedBy = closedBy; audit.closedDate = document.getElementById('inputClosedDate').value || new Date().toISOString().split('T')[0];
+audit.questions.forEach(q => { if (q.answer === 'No') { q.status = 'Closed'; const noteEl = document.getElementById('closure_note_' + q.id); if (noteEl) q.closureNote = noteEl.value; } });
+
+const c = clients.find(x => x.id === audit.clientId) || { name: 'Project' };
+const s = sites.find(x => x.id === audit.siteId) || { name: 'Site' };
+
+const doc = buildCompletePdfDocument(audit, c, s);
+const pdfBlob = doc.output('blob');
+
+if (supabaseClient) {
+const pdfUrl = await uploadPdfToSupabase(audit, pdfBlob);
+if (pdfUrl) audit.pdfUrl = pdfUrl;
+}
+
+localStorage.setItem('tw_audits', JSON.stringify(audits));
+if (supabaseClient) {
+try { await supabaseClient.from('audits').update({ status: 'Closed', questions: audit.questions, closedBy: audit.closedBy, closedDate: audit.closedDate, pdfUrl: audit.pdfUrl }).eq('id', audit.id); } catch(e){}
+}
+renderDashboard(); closeInspectModal();
+alert("TW Report verified, PDF certificate stored, and marked CLOSED.");
+}
+} catch (err) { alert(err.message); } finally { btn.innerText = originalText; btn.disabled = false; }
+}
+
+function openManageModal() { renderManageList(); document.getElementById('manageModal').classList.remove('hidden'); document.getElementById('manageModal').classList.add('flex'); }
+function closeManageModal() { document.getElementById('manageModal').classList.add('hidden'); document.getElementById('manageModal').classList.remove('flex'); }
+
+function renderManageList() {
+const container = document.getElementById('manageClientsList');
+if (clients.length === 0) { container.innerHTML = '<p class="text-xs text-slate-400">No projects registered.</p>'; return; }
+container.innerHTML = clients.map(c => {
+const clientSites = sites.filter(s => s.clientId === c.id);
+let sitesHtml = clientSites.length === 0 ? '<p class="text-slate-400 italic text-[11px]">No sites registered under this project.</p>' : clientSites.map(s => `
+<div class="flex justify-between items-center py-1.5 px-2 bg-white rounded border border-slate-200">
+<span class="font-medium text-slate-700">• ${s.name}</span>
+<div class="flex items-center gap-1.5">
+<button onclick="openEditSiteModal('${s.id}')" class="text-amber-700 hover:text-amber-900 font-bold text-[11px] bg-amber-50 px-2 py-0.5 rounded border border-amber-200">Edit Site</button>
+<button onclick="deleteSiteLocation('${s.id}')" class="text-red-600 hover:text-red-800 font-bold text-[11px] bg-red-50 px-2 py-0.5 rounded border border-red-200">Remove</button>
+</div>
+</div>`).join('');
+
+return `<div class="p-3 border rounded-xl bg-slate-50 space-y-2 text-xs">
+<div class="flex justify-between items-start">
+<div>
+<p class="font-bold text-slate-800 text-sm">${c.name}</p>
+<p class="text-slate-500 mt-0.5">Rep: <span class="font-medium">${c.rep || 'N/A'}</span> | Email: <span class="font-medium">${c.email || 'N/A'}</span></p>
+</div>
+<div class="flex items-center gap-1.5">
+<button onclick="openEditClientModal('${c.id}')" class="bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-300 px-2.5 py-1 rounded font-bold text-xs shadow-sm">Edit Project</button>
+<button onclick="deleteClientOrg('${c.id}')" class="bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 px-2.5 py-1 rounded font-bold text-xs shadow-sm">Delete</button>
+</div>
+</div>
+<div class="pl-3 pt-2 border-t border-slate-200 space-y-1">
+<p class="font-bold text-[10px] text-slate-500 uppercase tracking-wider mb-1">Linked Site Locations:</p>
+${sitesHtml}
+</div>
+</div>`;
+}).join('');
+lucide.createIcons();
+}
+
+function openEditClientModal(clientId) {
+const c = clients.find(x => x.id === clientId);
+if (!c) return;
+document.getElementById('editClientId').value = c.id;
+document.getElementById('editClientName').value = c.name || '';
+document.getElementById('editClientRep').value = c.rep || '';
+document.getElementById('editClientEmail').value = c.email || '';
+document.getElementById('editClientModal').classList.remove('hidden');
+document.getElementById('editClientModal').classList.add('flex');
+}
+function closeEditClientModal() { document.getElementById('editClientModal').classList.add('hidden'); }
+
+async function handleSaveEditClient(e) {
+e.preventDefault();
+const id = document.getElementById('editClientId').value;
+const c = clients.find(x => x.id === id);
+if (c) {
+c.name = document.getElementById('editClientName').value.trim();
+c.rep = document.getElementById('editClientRep').value.trim();
+c.email = document.getElementById('editClientEmail').value.trim();
+localStorage.setItem('tw_clients', JSON.stringify(clients));
+if (supabaseClient) {
+try { await supabaseClient.from('clients').update({ name: c.name, rep: c.rep, email: c.email }).eq('id', c.id); } catch(e){}
+}
+populateDropdowns(); renderDashboard(); renderManageList(); closeEditClientModal();
+}
+}
+
+function openEditSiteModal(siteId) {
+const s = sites.find(x => x.id === siteId);
+if (!s) return;
+document.getElementById('editSiteId').value = s.id;
+document.getElementById('editSiteName').value = s.name || '';
+
+const sSel = document.getElementById('editSiteClientId');
+sSel.innerHTML = '';
+clients.forEach(c => sSel.innerHTML += `<option value="${c.id}" ${c.id===s.clientId?'selected':''}>${c.name}</option>`);
+
+document.getElementById('editSiteModal').classList.remove('hidden');
+document.getElementById('editSiteModal').classList.add('flex');
+}
+function closeEditSiteModal() { document.getElementById('editSiteModal').classList.add('hidden'); }
+
+async function handleSaveEditSite(e) {
+e.preventDefault();
+const id = document.getElementById('editSiteId').value;
+const s = sites.find(x => x.id === id);
+if (s) {
+s.clientId = document.getElementById('editSiteClientId').value;
+s.name = document.getElementById('editSiteName').value.trim();
+localStorage.setItem('tw_sites', JSON.stringify(sites));
+if (supabaseClient) {
+try { await supabaseClient.from('sites').update({ clientId: s.clientId, name: s.name }).eq('id', s.id); } catch(e){}
+}
+populateDropdowns(); renderDashboard(); renderManageList(); closeEditSiteModal();
+}
+}
+
+async function deleteClientOrg(clientId) {
+if (!confirm("Are you sure you want to delete this project and all its associated site locations?")) return;
+const purgeAudits = confirm("Click OK to ALSO delete all inspection records for this project, or Cancel to keep historical audit data.");
+
+// Filter local state
+clients = clients.filter(c => c.id !== clientId);
+const sitesToDelete = sites.filter(s => s.clientId === clientId).map(s => s.id);
+sites = sites.filter(s => s.clientId !== clientId);
+if (purgeAudits) audits = audits.filter(a => a.clientId !== clientId);
+
+localStorage.setItem('tw_clients', JSON.stringify(clients));
+localStorage.setItem('tw_sites', JSON.stringify(sites));
+localStorage.setItem('tw_audits', JSON.stringify(audits));
+
+if (supabaseClient) {
+try {
+// Delete sites first or by client foreign key
+await supabaseClient.from('sites').delete().eq('clientId', clientId);
+if (purgeAudits) {
+await supabaseClient.from('audits').delete().eq('clientId', clientId);
+}
+await supabaseClient.from('clients').delete().eq('id', clientId);
+} catch(e) {
+console.warn("Supabase cascade delete warning:", e);
+}
+}
+
+populateDropdowns();
+renderDashboard();
+renderManageList();
+alert("Project and associated sites deleted successfully.");
+}
+
+async function deleteSiteLocation(siteId) {
+if (!confirm("Remove this site location permanently?")) return;
+sites = sites.filter(s => s.id !== siteId);
+localStorage.setItem('tw_sites', JSON.stringify(sites));
+if (supabaseClient) {
+try { await supabaseClient.from('sites').delete().eq('id', siteId); } catch(e){}
+}
+populateDropdowns();
+renderDashboard();
+renderManageList();
+}
+
+function populateDropdowns() {
+const cSel = document.getElementById('clientFilter'); const sClientSel = document.getElementById('selectSiteClient');
+cSel.innerHTML = '<option value="ALL">All Projects</option>'; sClientSel.innerHTML = '';
+clients.forEach(c => { cSel.innerHTML += `<option value="${c.id}">${c.name}</option>`; sClientSel.innerHTML += `<option value="${c.id}">${c.name}</option>`; });
+updateSiteFilter();
+populateSupervisorProjects();
+}
+
+function populateSupervisorProjects() {
+const select = document.getElementById('supervisorProject');
+const selectedValue = select.value;
+select.replaceChildren(new Option('Select a site or project', ''));
+const sitesWithProjects = sites.map(site => {
+const client = clients.find(item => item.id === site.clientId);
+return { site, client };
+});
+sitesWithProjects.forEach(({ site, client }) => {
+const option = new Option(site.name + (client ? ' (' + client.name + ')' : ''), site.name);
+select.appendChild(option);
+});
+clients.filter(client => !sites.some(site => site.clientId === client.id)).forEach(client => {
+select.appendChild(new Option(client.name, client.name));
+});
+if (Array.from(select.options).some(option => option.value === selectedValue)) select.value = selectedValue;
+}
+
+function updateSiteFilter() {
+const cId = document.getElementById('clientFilter').value; const sSel = document.getElementById('siteFilter');
+sSel.innerHTML = '<option value="ALL">All Site Locations</option>';
+sites.filter(s => cId === 'ALL' || s.clientId === cId).forEach(s => sSel.innerHTML += `<option value="${s.id}">${s.name}</option>`);
+}
+
+function applyFilters() { renderDashboard(); }
+
+function handleSaveBranding(e) {
+e.preventDefault();
+branding.title = document.getElementById('inputBrandTitle').value; branding.subtitle = document.getElementById('inputBrandSubtitle').value; branding.color = document.getElementById('inputBrandColor').value; branding.textColor = document.getElementById('inputBrandTextColor').value; branding.logoUrl = document.getElementById('inputBrandLogoUrl').value; branding.footerText = document.getElementById('inputBrandFooter').value;
+localStorage.setItem('tw_branding', JSON.stringify(branding)); applyBranding(); closeBrandingModal();
+}
+
+async function handleSaveClient(e) {
+e.preventDefault();
+const newC = { id: 'c_' + Date.now(), name: document.getElementById('inputClientName').value.trim(), rep: document.getElementById('inputClientRep').value.trim(), email: document.getElementById('inputClientEmail').value.trim() };
+clients.push(newC); localStorage.setItem('tw_clients', JSON.stringify(clients)); 
+if (supabaseClient) {
+const { error } = await supabaseClient.from('clients').insert([newC]);
+if (error) alert("Warning: Saved locally, but cloud sync failed! Supabase Error: " + error.message);
+}
+populateDropdowns(); renderDashboard(); closeClientModal();
+}
+
+async function handleSaveSite(e) {
+e.preventDefault();
+const newS = { id: 's_' + Date.now(), clientId: document.getElementById('selectSiteClient').value, name: document.getElementById('inputSiteName').value.trim() };
+sites.push(newS); localStorage.setItem('tw_sites', JSON.stringify(sites)); 
+if (supabaseClient) {
+const { error } = await supabaseClient.from('sites').insert([newS]);
+if (error) alert("Warning: Saved locally, but cloud sync failed! Supabase Error: " + error.message);
+}
+populateDropdowns(); renderDashboard(); closeSiteModal();
+}
+
+function handleSaveDbKeys(e) {
+e.preventDefault();
+localStorage.setItem('tw_supa_url', document.getElementById('inputSupaUrl').value.trim()); localStorage.setItem('tw_supa_key', document.getElementById('inputSupaKey').value.trim());
+closeDbModal(); location.reload();
+}
+
+function handleLogoUpload(input) {
+if (input.files && input.files[0]) {
+const reader = new FileReader();
+reader.onload = e => {
+const img = new Image();
+img.onload = () => {
+const canvas = document.createElement('canvas');
+let width = img.width, height = img.height;
+if (width > 300) { height = Math.round((height * 300) / width); width = 300; }
+canvas.width = width; canvas.height = height;
+canvas.getContext('2d').drawImage(img, 0, 0, width, height);
+document.getElementById('inputBrandLogoUrl').value = canvas.toDataURL('image/png');
+};
+img.src = e.target.result;
+};
+reader.readAsDataURL(input.files[0]);
+}
+}
+
+function openBrandingModal() { document.getElementById('inputBrandTitle').value = branding.title || ''; document.getElementById('inputBrandSubtitle').value = branding.subtitle || ''; document.getElementById('inputBrandColor').value = branding.color || '#78350f'; document.getElementById('inputBrandTextColor').value = branding.textColor || '#ffffff'; document.getElementById('inputBrandLogoUrl').value = branding.logoUrl || ''; document.getElementById('inputBrandFooter').value = branding.footerText || ''; document.getElementById('brandingModal').classList.remove('hidden'); document.getElementById('brandingModal').classList.add('flex'); }
+function closeBrandingModal() { document.getElementById('brandingModal').classList.add('hidden'); }
+function openClientModal() { document.getElementById('inputClientName').value = ''; document.getElementById('inputClientRep').value = ''; document.getElementById('inputClientEmail').value = ''; document.getElementById('clientModal').classList.remove('hidden'); document.getElementById('clientModal').classList.add('flex'); }
+function closeClientModal() { document.getElementById('clientModal').classList.add('hidden'); }
+function openSiteModal() { document.getElementById('siteModal').classList.remove('hidden'); document.getElementById('siteModal').classList.add('flex'); }
+function closeSiteModal() { document.getElementById('siteModal').classList.add('hidden'); }
+function openDbModal() { document.getElementById('inputSupaUrl').value = SUPABASE_URL; document.getElementById('inputSupaKey').value = SUPABASE_ANON_KEY; document.getElementById('dbModal').classList.remove('hidden'); document.getElementById('dbModal').classList.add('flex'); }
+function closeDbModal() { document.getElementById('dbModal').classList.add('hidden'); }
+function openLightbox(src) { document.getElementById('lightboxImg').src = src; document.getElementById('lightboxModal').classList.remove('hidden'); document.getElementById('lightboxModal').classList.add('flex'); }
+function closeLightbox() { document.getElementById('lightboxModal').classList.add('hidden'); document.getElementById('lightboxModal').classList.remove('flex'); }
+</script>
 </body>
 </html>
